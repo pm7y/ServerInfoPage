@@ -1,4 +1,5 @@
 ﻿<%@ Page Language="C#" Buffer="false" %>
+
 <!DOCTYPE HTML>
 <html>
 <head>
@@ -133,14 +134,14 @@
 
             return installed;
         }
-</script>
+    </script>
 
 </head>
 <body>
     <div class="page">
         <div class="header">
             <div class="headerTitle">
-                ASP.NET Host Script
+                <%= ( Environment.MachineName + " (" + Request.ServerVariables["LOCAL_ADDR"].ToString() +")") %>
             </div>
         </div>
         <div class="headerStrip">
@@ -148,7 +149,7 @@
         <div class="mainContent">
             <div class="contentSection">
                 <table>
-                                        <tr>
+                    <tr>
                         <th colspan="2">.Net
                         </th>
                     </tr>
@@ -173,7 +174,7 @@
                         </td>
                     </tr>
 
-                     <tr>
+                    <tr>
                         <td>.Net Versions Installed (from registry)
                         </td>
                         <td>
@@ -193,6 +194,30 @@
                             %>
                         </td>
                     </tr>
+
+                    <tr>
+                        <th colspan="2">TCP Ports
+                        </th>
+                    </tr>
+                    <tr>
+                        <td>
+                        </td>
+                        <td>
+                            <%  
+                                System.Net.NetworkInformation.IPGlobalProperties properties = System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties();
+                                System.Net.IPEndPoint[] endPoints = properties.GetActiveTcpListeners();
+                                foreach (System.Net.IPEndPoint e in endPoints)
+                                {
+                                    if (e.Address.ToString() == "0.0.0.0" || e.Address.ToString() == Request.ServerVariables["LOCAL_ADDR"].ToString())
+                                    {
+                                        Response.Write(string.Format("<div style=\"padding:2px 2px 2px 0px;\">{0}</div>", e.Address.ToString() + ":" + e.Port));
+                                    }
+                                }
+                            %>
+                        </td>
+                    </tr>
+
+
 
 
                     <tr>
@@ -281,6 +306,13 @@
                         </td>
                     </tr>
                     <tr>
+                        <td>Request.Path
+                        </td>
+                        <td>
+                            <%= Request.Path %>
+                        </td>
+                    </tr>
+                    <tr>
                         <td>Request.HttpMethod
                         </td>
                         <td>
@@ -301,20 +333,7 @@
                             <%= Request.LogonUserIdentity.Name %>
                         </td>
                     </tr>
-                    <tr>
-                        <td>Request.Path
-                        </td>
-                        <td>
-                            <%= Request.Path %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.PathInfo
-                        </td>
-                        <td>
-                            <%= Request.PathInfo %>
-                        </td>
-                    </tr>
+
                     <tr>
                         <td>Request.PhysicalApplicationPath
                         </td>
@@ -330,24 +349,10 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Request.RequestType
-                        </td>
-                        <td>
-                            <%= Request.RequestType %>
-                        </td>
-                    </tr>
-                    <tr>
                         <td>Request.Url
                         </td>
                         <td>
                             <%= Request.Url.ToString() %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.UrlReferrer
-                        </td>
-                        <td>
-                            <%= Request.UrlReferrer != null ? Request.UrlReferrer.ToString() : "" %>
                         </td>
                     </tr>
                     <tr>
@@ -386,7 +391,7 @@
                             %>
                         </td>
                     </tr>
-                                        <tr>
+                    <tr>
                         <td>Request.ServerVariables
                         </td>
                         <td>
@@ -401,9 +406,9 @@
                             %>
                         </td>
                     </tr>
-                    <% if (HttpRuntime.UsingIntegratedPipeline) 
+                    <% if (HttpRuntime.UsingIntegratedPipeline)
                        {
-                            %>
+                    %>
                     <tr>
                         <th colspan="2">Response
                         </th>
