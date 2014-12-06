@@ -1,73 +1,21 @@
 ﻿<%@ Page Language="C#" Buffer="false" %>
 
-<!DOCTYPE HTML>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" />
+    <script type="text/javascript" src="http://maxcdn.bootstrapcdn.com/bootstrap/latest/js/bootstrap.min.js"></script>
+
     <style type="text/css" media="screen">
         body {
-            padding: 0px;
-            margin: 0px;
+            font-family: "Calibri", Arial, sans-serif;
         }
-
-        .page {
-            width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .header {
-            background-color: #64AA2B;
-            height: 50px;
-            padding: 0px;
-            margin: 0px;
-        }
-
-        .headerStrip {
-            background-color: #439400;
-            height: 10px;
-        }
-
-        .headerTitle {
-            color: #ffffff;
-            font-family: "MS Sans Serif", Geneva, sans-serif;
-            font-size: 16px;
-            position: relative;
-            left: 15px;
-            top: 15px;
-        }
-
-        .mainContent {
-            margin: 0px;
-            font-family: "MS Sans Serif", Geneva, sans-serif;
-        }
-
-        .contentSection {
-            margin: 0px;
-        }
-
-        table {
-            font-family: "MS Sans Serif", Geneva, sans-serif;
-            font-size: 12px;
-            border-spacing: 0px;
-            max-width: 100%;
-            width: 100%;
-            margin-left: auto;
-            margin-right: auto;
-            margin-bottom: 10px;
-        }
-
-            table th {
-                background-color: #C9F76F;
-                padding: 10px 5px 5px 5px;
-                font-weight: normal;
-                text-align: left;
-            }
-
-            table td {
-                background-color: #ffffff;
-                padding: 2px 2px 2px 15px;
-                vertical-align: top;
-            }
     </style>
     <title>ASP.NET Host Script</title>
 
@@ -137,26 +85,24 @@
     </script>
 
 </head>
-<body>
-    <div class="page">
-        <div class="header">
-            <div class="headerTitle">
-                <%= ( Environment.MachineName + " (" + Request.ServerVariables["LOCAL_ADDR"].ToString() +")") %>
+<body role="document">
+    <div class="container" role="main">
+        <div class="row">
+            <div class="col-md-12">
+                <h1><%= ( Environment.MachineName + " (" + Request.ServerVariables["LOCAL_ADDR"].ToString() +")") %></h1>
             </div>
         </div>
-        <div class="headerStrip">
-        </div>
-        <div class="mainContent">
-            <div class="contentSection">
-                <table>
-                    <tr>
-                        <th colspan="2">.Net
-                        </th>
-                    </tr>
-                    <tr>
-                        <td>.Net Versions Installed (from filesystem)
-                        </td>
-                        <td>
+        <div class="row">
+            <div class="col-md-12">
+                <h3>.NET Versions Installed</h3>
+                <div class="col-md-6">
+                    <table class="table table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Installed Version (derived from filesystem)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                             <%
                                 string[] versions = System.IO.Directory.GetDirectories(@"C:\Windows\Microsoft.NET\Framework", "v*");
                                 string version = "Unknown";
@@ -167,17 +113,22 @@
                                     version = versions[i].Substring(startIndex, versions[i].Length - startIndex);
                                     if (version.Contains("."))
                                     {
-                                        Response.Write(string.Format("<div style=\"padding:2px 2px 2px 0px;\">{0}</div>", version));
+                                        Response.Write(string.Format("<tr><td>{0}</td></tr>", version));
                                     }
                                 }
                             %>
-                        </td>
-                    </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-                    <tr>
-                        <td>.Net Versions Installed (from registry)
-                        </td>
-                        <td>
+                <div class="col-md-6">
+                    <table class="table table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Installed Version (derived from registry)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                             <%
                                 string[] versions2 = DotNetInstalled().ToArray();
                                 string version2 = "Unknown";
@@ -188,292 +139,183 @@
                                     version2 = versions2[i].Substring(startIndex, versions2[i].Length - startIndex);
                                     if (version2.Contains("."))
                                     {
-                                        Response.Write(string.Format("<div style=\"padding:2px 2px 2px 0px;\">{0}</div>", version2));
+                                        Response.Write(string.Format("<tr><td>{0}</td></tr>", version2));
                                     }
                                 }
                             %>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th colspan="2">TCP Ports
-                        </th>
-                    </tr>
-                    <tr>
-                        <td>
-                        </td>
-                        <td>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-12">
+                <h3>Active TCP Listeners</h3>
+                <div class="col-md-6">
+                    <table class="table table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Address</th>
+                                <th>Port</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                             <%  
                                 System.Net.NetworkInformation.IPGlobalProperties properties = System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties();
                                 System.Net.IPEndPoint[] endPoints = properties.GetActiveTcpListeners();
                                 foreach (System.Net.IPEndPoint e in endPoints)
                                 {
-                                    if (e.Address.ToString() == "0.0.0.0" || e.Address.ToString() == Request.ServerVariables["LOCAL_ADDR"].ToString())
+                                    Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", e.Address.ToString(), e.Port));
+                                }
+                            %>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <h3>Environment</h3>
+                <div class="col-md-12">
+                    <table class="table table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <%  
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.MachineName", Environment.MachineName));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.OSVersion.VersionString", Environment.OSVersion.VersionString));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.ProcessorCount", Environment.ProcessorCount));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.SystemDirectory", Environment.SystemDirectory));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.UserDomainName", Environment.UserDomainName));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.UserName", Environment.UserName));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.Version", Environment.Version.ToString()));
+                                foreach (string key in Environment.GetEnvironmentVariables().Keys)
+                                {
+                                    Response.Write(string.Format("<tr><td>Environment.GetEnvironmentVariable(\"{0}\")</td><td>{1}</td></tr>", key, (Environment.GetEnvironmentVariable(key) ?? "").Replace(";", "<br/>")));
+                                }
+                            %>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <h3>Request</h3>
+                <div class="col-md-12">
+                    <table class="table table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <%  
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.ApplicationPath", Request.ApplicationPath));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.AppRelativeCurrentExecutionFilePath", Request.AppRelativeCurrentExecutionFilePath));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.CurrentExecutionFilePath", Request.CurrentExecutionFilePath));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.FilePath", Request.FilePath));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.Path", Request.Path));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.HttpMethod", Request.HttpMethod));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.IsSecureConnection", Request.IsSecureConnection));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.LogonUserIdentity", Request.LogonUserIdentity.Name));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.PhysicalApplicationPath", Request.PhysicalApplicationPath));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.PhysicalPath", Request.PhysicalPath));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.PhysicalApplicationPath", Request.PhysicalApplicationPath));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.Url", Request.Url.ToString()));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.UserAgent", Request.UserAgent));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.UserHostAddress", Request.UserHostAddress));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.UserHostName", Request.UserHostName));
+                                Response.Write("<tr><th colspan=\"2\">Request.Headers</th></tr>");
+                                foreach (string key in Request.Headers.AllKeys)
+                                {
+                                    Response.Write(string.Format("<tr><td>Request.Headers[\"{0}\"]</td><td>{1}</td></tr>", key, (Request.Headers[key] ?? "").Trim()));
+                                }
+                                Response.Write("<tr><th colspan=\"2\">Request.ServerVariables</th></tr>");
+                                foreach (string key in Request.ServerVariables.AllKeys)
+                                {
+                                    string headerValue = Request.ServerVariables[key];
+                                    if (!string.IsNullOrEmpty(headerValue))
                                     {
-                                        Response.Write(string.Format("<div style=\"padding:2px 2px 2px 0px;\">{0}</div>", e.Address.ToString() + ":" + e.Port));
+                                        Response.Write(string.Format("<tr><td>Request.ServerVariables[\"{0}\"]</td><td>{1}</td></tr>", key, (Request.ServerVariables[key] ?? "").Trim()));
                                     }
                                 }
                             %>
-                        </td>
-                    </tr>
+                    </table>
+                </div>
+            </div>
 
-
-
-
-                    <tr>
-                        <th colspan="2">Environment
-                        </th>
-                    </tr>
-                    <tr>
-                        <td>Environment.MachineName
-                        </td>
-                        <td>
-                            <%= Environment.MachineName %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Environment.OSVersion.VersionString
-                        </td>
-                        <td>
-                            <%= Environment.OSVersion.VersionString %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Environment.ProcessorCount
-                        </td>
-                        <td>
-                            <%= Environment.ProcessorCount %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Environment.SystemDirectory
-                        </td>
-                        <td>
-                            <%= Environment.SystemDirectory %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Environment.UserDomainName
-                        </td>
-                        <td>
-                            <%= Environment.UserDomainName %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Environment.UserName
-                        </td>
-                        <td>
-                            <%= Environment.UserName %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Environment.Version
-                        </td>
-                        <td>
-                            <%= Environment.Version.ToString() %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th colspan="2">Request
-                        </th>
-                    </tr>
-                    <tr>
-                        <td>Request.ApplicationPath
-                        </td>
-                        <td>
-                            <%= Request.ApplicationPath %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.AppRelativeCurrentExecutionFilePath
-                        </td>
-                        <td>
-                            <%= Request.AppRelativeCurrentExecutionFilePath %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.CurrentExecutionFilePath
-                        </td>
-                        <td>
-                            <%= Request.CurrentExecutionFilePath %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.FilePath
-                        </td>
-                        <td>
-                            <%= Request.FilePath %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.Path
-                        </td>
-                        <td>
-                            <%= Request.Path %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.HttpMethod
-                        </td>
-                        <td>
-                            <%= Request.HttpMethod %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.IsSecureConnection
-                        </td>
-                        <td>
-                            <%= Request.IsSecureConnection %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.LogonUserIdentity
-                        </td>
-                        <td>
-                            <%= Request.LogonUserIdentity.Name %>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td>Request.PhysicalApplicationPath
-                        </td>
-                        <td>
-                            <%= Request.PhysicalApplicationPath %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.PhysicalPath
-                        </td>
-                        <td>
-                            <%= Request.PhysicalPath %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.Url
-                        </td>
-                        <td>
-                            <%= Request.Url.ToString() %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.UserAgent
-                        </td>
-                        <td>
-                            <%= Request.UserAgent %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.UserHostAddress
-                        </td>
-                        <td>
-                            <%= Request.UserHostAddress %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.UserHostName
-                        </td>
-                        <td>
-                            <%= Request.UserHostName %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.Headers
-                        </td>
-                        <td>
-                            <% foreach (string key in Request.Headers.AllKeys)
-                               {
-                                   string headerValue = Request.Headers[key];
-                                   if (!string.IsNullOrEmpty(headerValue))
-                                   {
-                                       Response.Write(string.Format("<div style=\"float:left;min-width:25%;padding:2px 2px 2px 0px;\">{0}</div><div style=\"padding:2px 2px 2px 0px;\">{1}</div>", key.Trim(), Request.Headers[key].Trim()));
-                                   }
-                               }
-                            %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Request.ServerVariables
-                        </td>
-                        <td>
-                            <% foreach (string key in Request.ServerVariables.AllKeys)
-                               {
-                                   string headerValue = Request.ServerVariables[key];
-                                   if (!string.IsNullOrEmpty(headerValue))
-                                   {
-                                       Response.Write(string.Format("<div style=\"float:left;min-width:25%;padding:2px 2px 2px 0px;\">{0}</div><div style=\"padding:2px 2px 2px 0px;\">{1}</div>", key.Trim(), Request.ServerVariables[key].Trim()));
-                                   }
-                               }
-                            %>
-                        </td>
-                    </tr>
-                    <% if (HttpRuntime.UsingIntegratedPipeline)
+            <% if (HttpRuntime.UsingIntegratedPipeline)
+               {
+            %>
+            <div class="col-md-12">
+                <h3>Response</h3>
+                <div class="col-md-12">
+                    <table class="table table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <%  
+                   foreach (string key in Response.Headers.AllKeys)
+                   {
+                       string headerValue = Response.Headers[key];
+                       if (!string.IsNullOrEmpty(headerValue))
                        {
-                    %>
-                    <tr>
-                        <th colspan="2">Response
-                        </th>
-                    </tr>
-                    <tr>
-                        <td>Response.Headers
-                        </td>
-                        <td>
-                            <% foreach (string key in Response.Headers.AllKeys)
-                               {
-                                   string headerValue = Response.Headers[key];
-                                   if (!string.IsNullOrEmpty(headerValue))
-                                   {
-                                       Response.Write(string.Format("<div style=\"float:left;min-width:25%;padding:2px 2px 2px 0px;\">{0}</div><div style=\"padding:2px 2px 2px 0px;\">{1}</div>", key.Trim(), Response.Headers[key].Trim()));
-                                   }
-                               }
+                           Response.Write(string.Format("<tr><td>Response.Headers[\"{0}\"]</td><td>{1}</td></tr>", key, (Response.Headers[key] ?? "")));
+                       }
+                   }
                             %>
-                        </td>
-                    </tr>
-                    <% } %>
-                    <tr>
-                        <th colspan="2">IIS
-                        </th>
-                    </tr>
-                    <tr>
-                        <td>IIS Version
-                        </td>
-                        <td>
-                            <% Response.Write(GetIISVersion()); %>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>HttpRuntime.UsingIntegratedPipeline
-                        </td>
-                        <td>
-                            <% Response.Write(HttpRuntime.UsingIntegratedPipeline); %>
-                        </td>
-                    </tr>
+                    </table>
+                </div>
+            </div>
+            <% } %>
 
-                    <tr>
-                        <th colspan="2">GAC
-                        </th>
-                    </tr>
-                    <tr>
-                        <td>Assemblies
-                        </td>
-                        <td>
+            <div class="col-md-12">
+                <h3>IIS</h3>
+                <div class="col-md-12">
+                    <table class="table table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <%  
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "IIS Version", HttpRuntime.UsingIntegratedPipeline));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "HttpRuntime.UsingIntegratedPipeline", GetIISVersion()));
+                            %>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <h3>Global Assembly Cache (GAC)</h3>
+                <div class="col-md-12">
+                    <table class="table table-condensed">
+                        <tbody>
                             <% try
                                {
                                    string windows = Environment.GetEnvironmentVariable("SystemRoot");
-                                   string assembly = System.IO.Path.Combine(windows, @"assembly");
-                                   string[] gacFolders = System.IO.Directory.GetDirectories(assembly);
-
-                                   System.Collections.Generic.List<string> allAssemblies = new System.Collections.Generic.List<string>();
-                                   foreach (string folder in gacFolders)
+                                   if (windows != null)
                                    {
-                                       if (folder.ToLowerInvariant().Contains("\\gac"))
-                                       {
-                                           string path = System.IO.Path.Combine(assembly, folder);
-                                           if (System.IO.Directory.Exists(path))
-                                           {
-                                               string[] assemblyFolders = System.IO.Directory.GetDirectories(path);
+                                       string assembly = System.IO.Path.Combine(windows, @"assembly");
+                                       string[] gacFolders = System.IO.Directory.GetDirectories(assembly);
 
-                                               if (assemblyFolders != null && assemblyFolders.Length > 0)
+                                       System.Collections.Generic.List<string> allAssemblies = new System.Collections.Generic.List<string>();
+                                       foreach (string folder in gacFolders)
+                                       {
+                                           if (folder.ToLowerInvariant().Contains("\\gac"))
+                                           {
+                                               string path = System.IO.Path.Combine(assembly, folder);
+                                               if (System.IO.Directory.Exists(path))
                                                {
+                                                   string[] assemblyFolders = System.IO.Directory.GetDirectories(path);
+
+                                                   if (assemblyFolders.Length <= 0) continue;
                                                    foreach (string assemblyFolder in assemblyFolders)
                                                    {
                                                        string dllName = assemblyFolder.Replace(path, "").Replace(@"\", "") + ".dll";
@@ -485,20 +327,20 @@
                                                }
                                            }
                                        }
-                                   }
-                                   allAssemblies.Sort();
+                                       allAssemblies.Sort();
 
-                                   foreach (string dll in allAssemblies)
-                                   {
-                                       Response.Write(string.Format("<div style=\"padding:2px 2px 2px 0px;\">{0}</div>", dll));
+                                       foreach (string dll in allAssemblies)
+                                       {
+                                           Response.Write(string.Format("<tr><td>{0}</td></tr>", dll));
+                                       }
                                    }
                                }
                                catch (NotSupportedException ex) { Response.Write(ex.Message); }
                             %>
-                        </td>
-                    </tr>
-                </table>
+                    </table>
+                </div>
             </div>
+
         </div>
     </div>
 </body>
