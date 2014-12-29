@@ -1,5 +1,8 @@
-ServerInfoPage
-==============
+# Asp.net Info Page #
 
-A simple ASPX page you can upload to your shared hosting space to get more information on the server.
+A simple ASPX page you can upload to your server or shared hosting space to get more information on it's capabilities and environment.
+
+
+
+
 
