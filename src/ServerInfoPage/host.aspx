@@ -17,6 +17,7 @@
 <%@ Import Namespace="System.IO" %>
 <%@ Import Namespace="System.Net" %>
 <%@ Import Namespace="System.Net.NetworkInformation" %>
+<%@ Import Namespace="System.Reflection" %>
 <%@ Import Namespace="System.Runtime.InteropServices" %>
 <%@ Import Namespace="Microsoft.Win32" %>
 
@@ -34,101 +35,101 @@
 
     <script runat="server">      
 
-    private string HKLM_GetString(string path, string key)
-    {
-        string value = string.Empty;
-
-        try
+        private string HKLM_GetString(string path, string key)
         {
-            RegistryKey rk = Registry.LocalMachine.OpenSubKey(path);
-            if (rk != null)
+            string value = string.Empty;
+
+            try
             {
-                value = rk.GetValue(key) as string;
-                rk.Close();
-            }
-        }
-        catch
-        {
-            value = string.Empty;
-        }
-
-        return value;
-    }
-
-    public string FriendlyOSName()
-    {
-        string productName = HKLM_GetString(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName");
-        string csdVersion = HKLM_GetString(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", "CSDVersion");
-        if (productName != string.Empty)
-        {
-            return (productName.StartsWith("Microsoft") ? string.Empty : "Microsoft ") + productName + (csdVersion != string.Empty ? " " + csdVersion : string.Empty);
-        }
-        return string.Empty;
-    }
-
-
-    public Version GetIISVersion()
-    {
-        using (Microsoft.Win32.RegistryKey componentsKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"Software\Microsoft\InetStp", false))
-        {
-            if (componentsKey != null)
-            {
-                int majorVersion = (int) componentsKey.GetValue("MajorVersion", -1);
-                int minorVersion = (int) componentsKey.GetValue("MinorVersion", -1);
-
-                if (majorVersion != -1 && minorVersion != -1)
+                RegistryKey rk = Registry.LocalMachine.OpenSubKey(path);
+                if (rk != null)
                 {
-                    return new Version(majorVersion, minorVersion);
+                    value = rk.GetValue(key) as string;
+                    rk.Close();
                 }
             }
-            return new Version(0, 0);
-        }
-    }
-
-    private System.Collections.Generic.List<string> DotNetInstalled()
-    {
-        System.Collections.Generic.List<string> installed = new System.Collections.Generic.List<string>();
-        Microsoft.Win32.RegistryKey componentsKey = null;
-        string v;
-
-        System.Collections.Generic.List<string> keys = new System.Collections.Generic.List<string>();
-        keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Client");
-        keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full");
-        keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5");
-        keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.0");
-        keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v2.0.50727");
-        keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v1.1.4322");
-        keys.Add(@"SOFTWARE\Microsoft\Active Setup\Installed Components\{78705f0d-e8db-4b2d-8193-982bdda15ecd}");
-
-        foreach (string key in keys)
-        {
-            componentsKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(key);
-            if (componentsKey != null)
+            catch
             {
-                short installVal = Convert.ToInt16(componentsKey.GetValue("Install"));
-                short spVal = Convert.ToInt16(componentsKey.GetValue("SP"));
-                string versionVal = componentsKey.GetValue("Version") as string;
+                value = string.Empty;
+            }
 
-                if (installVal == 1)
+            return value;
+        }
+
+        public string FriendlyOSName()
+        {
+            string productName = HKLM_GetString(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName");
+            string csdVersion = HKLM_GetString(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", "CSDVersion");
+            if (productName != string.Empty)
+            {
+                return (productName.StartsWith("Microsoft") ? string.Empty : "Microsoft ") + productName + (csdVersion != string.Empty ? " " + csdVersion : string.Empty);
+            }
+            return string.Empty;
+        }
+
+
+        public Version GetIISVersion()
+        {
+            using (Microsoft.Win32.RegistryKey componentsKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"Software\Microsoft\InetStp", false))
+            {
+                if (componentsKey != null)
                 {
-                    string cf = key.Contains(@"\Client") ? "Client Profile" : "";
+                    int majorVersion = (int)componentsKey.GetValue("MajorVersion", -1);
+                    int minorVersion = (int)componentsKey.GetValue("MinorVersion", -1);
 
-                    if (spVal == 0)
+                    if (majorVersion != -1 && minorVersion != -1)
                     {
-                        v = string.Format(".NET {0} [{1}]", versionVal, cf).Replace("[]", string.Empty).Trim();
+                        return new Version(majorVersion, minorVersion);
                     }
-                    else
-                    {
-                        v = string.Format(".NET {0} (SP{1}) [{2}]", versionVal, spVal, cf).Replace("[]", string.Empty).Trim();
-                    }
-
-                    installed.Add(v);
                 }
+                return new Version(0, 0);
             }
         }
 
-        return installed;
-    }
+        private System.Collections.Generic.List<string> DotNetInstalled()
+        {
+            System.Collections.Generic.List<string> installed = new System.Collections.Generic.List<string>();
+            Microsoft.Win32.RegistryKey componentsKey = null;
+            string v;
+
+            System.Collections.Generic.List<string> keys = new System.Collections.Generic.List<string>();
+            keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Client");
+            keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full");
+            keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5");
+            keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.0");
+            keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v2.0.50727");
+            keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v1.1.4322");
+            keys.Add(@"SOFTWARE\Microsoft\Active Setup\Installed Components\{78705f0d-e8db-4b2d-8193-982bdda15ecd}");
+
+            foreach (string key in keys)
+            {
+                componentsKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(key);
+                if (componentsKey != null)
+                {
+                    short installVal = Convert.ToInt16(componentsKey.GetValue("Install"));
+                    short spVal = Convert.ToInt16(componentsKey.GetValue("SP"));
+                    string versionVal = componentsKey.GetValue("Version") as string;
+
+                    if (installVal == 1)
+                    {
+                        string cf = key.Contains(@"\Client") ? "Client Profile" : "";
+
+                        if (spVal == 0)
+                        {
+                            v = string.Format(".NET {0} [{1}]", versionVal, cf).Replace("[]", string.Empty).Trim();
+                        }
+                        else
+                        {
+                            v = string.Format(".NET {0} (SP{1}) [{2}]", versionVal, spVal, cf).Replace("[]", string.Empty).Trim();
+                        }
+
+                        installed.Add(v);
+                    }
+                }
+            }
+
+            return installed;
+        }
 
 
     
@@ -172,7 +173,7 @@
                                 <td>.Net Version (Current)</td>
                                 <td><%=Environment.Version%></td>
                             </tr>
-<%--                            <tr>
+                            <%--                            <tr>
                                 <td>.Net Version (Highest)</td>
                                 <td><%=Environment.Version%></td>
                             </tr>--%>
@@ -410,10 +411,9 @@
                                                    if (assemblyFolders.Length <= 0) continue;
                                                    foreach (string assemblyFolder in assemblyFolders)
                                                    {
-                                                       string dllName = assemblyFolder.Replace(path, "").Replace(@"\", "") + ".dll";
-                                                       if (!allAssemblies.Contains(dllName))
+                                                       if (!allAssemblies.Contains(assemblyFolder))
                                                        {
-                                                           allAssemblies.Add(dllName);
+                                                           allAssemblies.Add(assemblyFolder);
                                                        }
                                                    }
                                                }
@@ -423,7 +423,23 @@
 
                                        foreach (string dll in allAssemblies)
                                        {
-                                           Response.Write(string.Format("<tr><td>{0}</td></tr>", dll));
+                                           FileInfo[] dlls = new DirectoryInfo(dll).GetFiles("*.dll", SearchOption.AllDirectories);
+                                           foreach (FileInfo fi in dlls)
+                                           {
+                                               if (fi.FullName.Contains("__"))
+                                               {
+                                                   string dir = fi.FullName.Replace(dll + @"\", "");
+                                                   dir = dir.Substring(0, dir.IndexOf('\\'));
+
+                                                   string[] parts = dir.Replace("__","_").Split('_');
+
+                                                   string dllVersion = parts[0];
+                                                   string dllKey = parts[1];
+                                                   
+                                                   string asmString = string.Format("{2}, Version={0}, PublicKeyToken={1}", dllVersion, dllKey, fi.Name);
+                                                   Response.Write(string.Format("<tr><td>{0}</td></tr>", asmString));
+                                               }
+                                           }
                                        }
                                    }
                                }
