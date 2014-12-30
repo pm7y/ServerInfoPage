@@ -173,32 +173,31 @@
     <a role="link" id="home"></a>
     <div class="container" role="main">
         <br />
-        <ol class="breadcrumb" style="font-size: 0.75em;">
-            <li><a href="#essentialInfo">Essential</a></li>
-            <li><a href="#process">Process</a></li>
-            <li><a href="#dotnetVersions">.NET</a></li>
-            <li><a href="#activeListeners">Ports</a></li>
-            <li><a href="#environmentVariables">Environment Vars</a></li>
-            <li><a href="#requestProperties">Request Props</a></li>
-            <li><a href="#requestHeaders">Request Headers</a></li>
-            <li><a href="#responseHeaders">Response Headers</a></li>
-            <li><a href="#serverVariables">Server Vars</a></li>
-            <li><a href="#session">Session</a></li>
-            <li><a href="#connectionStrings">Connection Strs</a></li>
-            <% if (WebConfigurationManager.AppSettings.Count > 0)
-               { %><li><a href="#appSettings">App Settings</a></li>
-            <% } %>
-            <li><a href="#gac">GAC</a></li>
-        </ol>
         <div class="panel panel-default">
             <div class="panel-heading">
                 <h1><span class="glyphicon glyphicon-home" aria-hidden="true" style="font-size: 0.8em;"></span>&nbsp;<%= (Environment.MachineName + " (" + Request.ServerVariables["LOCAL_ADDR"] + ")") %></h1>
             </div>
             <div class="panel-body">
+                <ol class="breadcrumb" style="font-size: 0.75em;">
+                    <li><a href="#essentialInfo">Essential</a></li>
+                    <li><a href="#process">Process</a></li>
+                    <li><a href="#dotnetVersions">.NET</a></li>
+                    <li><a href="#activeListeners">Ports</a></li>
+                    <li><a href="#environmentVariables">Environment Vars</a></li>
+                    <li><a href="#requestProperties">Request Props</a></li>
+                    <li><a href="#requestHeaders">Request Headers</a></li>
+                    <li><a href="#responseHeaders">Response Headers</a></li>
+                    <li><a href="#serverVariables">Server Vars</a></li>
+                    <li><a href="#session">Session</a></li>
+                    <li><a href="#connectionStrings">Connection Strs</a></li>
+                    <% if (WebConfigurationManager.AppSettings.Count > 0)
+                       { %><li><a href="#appSettings">App Settings</a></li>
+                    <% } %>
+                    <li><a href="#gac">GAC</a></li>
+                </ol>
                 <div>
-                    <p class="text-muted small"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>&nbsp;The latest version of this script can be found @ <a href="https://github.com/fallenidol/ServerInfoPage" target="_blank">github.com/fallenidol/ServerInfoPage</a>.</p>
                     <a role="link" id="essentialInfo"></a>
-                    <h3 class="text-primary">Essential Information<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <h3 class="text-primary">Essential Information</h3>
                     <table class="table table-striped">
                         <tbody>
                             <tr>
@@ -594,7 +593,7 @@
                             </tr>
                             <tr>
                                 <td>CodePage</td>
-                                <td><%=Session.CodePage %></td>
+                                <td><%=Session.CodePage + " [" +Encoding.GetEncoding(Session.CodePage, new EncoderExceptionFallback(), new DecoderExceptionFallback()).EncodingName + "]" %></td>
                             </tr>
                             <tr>
                                 <td>CookieMode</td>
@@ -622,7 +621,7 @@
                             </tr>
                             <tr>
                                 <td>LCID</td>
-                                <td><%=Session.LCID.ToString() %></td>
+                                <td><%=Session.LCID.ToString() + " [" + new CultureInfo(Session.LCID).EnglishName + "]"  %></td>
                             </tr>
                             <tr>
                                 <td>Mode</td>
@@ -794,6 +793,10 @@
                             %>
                     </table>
                 </div>
+            </div>
+
+            <div class="panel-footer">
+                <span class="text-muted"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>&nbsp;The latest version can be found <a href="https://raw.githubusercontent.com/fallenidol/ServerInfoPage/master/src/ServerInfoPage/host.aspx" target="_blank"><span class="glyphicon glyphicon-new-window small"></span>&nbsp;here</a>. Please raise bugs, issues and functionality requests <a href="https://github.com/fallenidol/ServerInfoPage/issues" target="_blank"><span class="glyphicon glyphicon-new-window small"></span>&nbsp;here</a>.</span>
             </div>
         </div>
     </div>
