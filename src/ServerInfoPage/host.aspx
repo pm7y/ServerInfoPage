@@ -13,12 +13,12 @@
     ValidateRequest="true" %>
 
 <%@ Import Namespace="System.Collections.Generic" %>
-<%@ Import Namespace="System.Diagnostics" %>
+<%@ Import Namespace="System.Data.SqlClient" %>
+<%@ Import Namespace="System.Globalization" %>
 <%@ Import Namespace="System.IO" %>
 <%@ Import Namespace="System.Net" %>
 <%@ Import Namespace="System.Net.NetworkInformation" %>
-<%@ Import Namespace="System.Reflection" %>
-<%@ Import Namespace="System.Runtime.InteropServices" %>
+<%@ Import Namespace="System.Web.Configuration" %>
 <%@ Import Namespace="Microsoft.Win32" %>
 
 <!DOCTYPE html>
@@ -26,14 +26,32 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
-    <meta name="author" content="">
+    <%--<meta name="viewport" content="width=device-width, initial-scale=1">--%>
+    <meta name="description" content="ASP.NET Host Info Script">
     <link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css" />
-    <link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" />
-    <title>ASP.NET Host Script</title>
+    <title>ASP.NET Host Info Script</title>
+    <script runat="server">
 
-    <script runat="server">      
+        private enum EndpointType
+        {
+            Udp,
+            Tcp
+        }
+
+        class IPEndPointWithType : IPEndPoint
+        {
+            private EndpointType _endpointType;
+            public EndpointType EndpointType
+            {
+                get { return _endpointType; }
+            }
+
+            public IPEndPointWithType(IPEndPoint ep, EndpointType type)
+                : base(ep.Address, ep.Port)
+            {
+                _endpointType = type;
+            }
+        }
 
         private string HKLM_GetString(string path, string key)
         {
@@ -56,7 +74,7 @@
             return value;
         }
 
-        public string FriendlyOSName()
+        public string FriendlyOsName()
         {
             string productName = HKLM_GetString(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName");
             string csdVersion = HKLM_GetString(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion", "CSDVersion");
@@ -67,10 +85,9 @@
             return string.Empty;
         }
 
-
-        public Version GetIISVersion()
+        public Version GetIisVersion()
         {
-            using (Microsoft.Win32.RegistryKey componentsKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"Software\Microsoft\InetStp", false))
+            using (RegistryKey componentsKey = Registry.LocalMachine.OpenSubKey(@"Software\Microsoft\InetStp", false))
             {
                 if (componentsKey != null)
                 {
@@ -86,13 +103,13 @@
             }
         }
 
-        private System.Collections.Generic.List<string> DotNetInstalled()
+        private List<string> DotNetInstalled()
         {
-            System.Collections.Generic.List<string> installed = new System.Collections.Generic.List<string>();
-            Microsoft.Win32.RegistryKey componentsKey = null;
+            List<string> installed = new List<string>();
+            RegistryKey componentsKey = null;
             string v;
 
-            System.Collections.Generic.List<string> keys = new System.Collections.Generic.List<string>();
+            List<string> keys = new List<string>();
             keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Client");
             keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full");
             keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5");
@@ -103,7 +120,7 @@
 
             foreach (string key in keys)
             {
-                componentsKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(key);
+                componentsKey = Registry.LocalMachine.OpenSubKey(key);
                 if (componentsKey != null)
                 {
                     short installVal = Convert.ToInt16(componentsKey.GetValue("Install"));
@@ -131,65 +148,120 @@
             return installed;
         }
 
+        private int CompareEndpoints(IPEndPoint ep1, IPEndPoint ep2)
+        {
+            return ep1.Port.CompareTo(ep2.Port);
+        }
 
-    
+        private int CompareStrings(string s, string s1)
+        {
+            return s.ToLowerInvariant().CompareTo(s1.ToLowerInvariant());
+        }
+
     </script>
-
 </head>
-<body role="document">
+<body role="document" style="font-family: 'Trebuchet MS',Tahoma, Arial;">
+    <a role="link" id="home"></a>
     <div class="container" role="main">
-        <div class="row">
-            <div class="col-md-12">
-                <h1><%= ( Environment.MachineName + " (" + Request.ServerVariables["LOCAL_ADDR"] +")") %></h1>
+        <br />
+        <ol class="breadcrumb" style="font-size: 0.75em;">
+            <li><a href="#essentialInfo">Essential</a></li>
+            <li><a href="#dotnetVersions">.NET</a></li>
+            <li><a href="#activeListeners">Ports</a></li>
+            <li><a href="#environmentVariables">Environment Vars</a></li>
+            <li><a href="#requestProperties">Request Props</a></li>
+            <li><a href="#requestHeaders">Request Headers</a></li>
+            <li><a href="#responseHeaders">Response Headers</a></li>
+            <li><a href="#serverVariables">Server Vars</a></li>
+            <li><a href="#connectionStrings">Connection Strs</a></li>
+            <li><a href="#appSettings">App Settings</a></li>
+            <li><a href="#gac">GAC</a></li>
+        </ol>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h1><span class="glyphicon glyphicon-home" aria-hidden="true" style="font-size: 0.8em;"></span>&nbsp;<%= (Environment.MachineName + " (" + Request.ServerVariables["LOCAL_ADDR"] + ")") %></h1>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-md-12">
-                <h3>Essential Information about <%=Environment.MachineName%></h3>
-                <div class="col-md-6">
-                    <table class="table table-condensed">
+            <div class="panel-body">
+                <div>
+                    <p class="text-muted small"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>&nbsp;The latest version of this script can be found @ <a href="https://github.com/fallenidol/ServerInfoPage" target="_blank">github.com/fallenidol/ServerInfoPage</a>.</p>
+                    <a role="link" id="essentialInfo"></a>
+                    <h3 class="text-primary">Essential Information<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <table class="table table-striped">
                         <tbody>
                             <tr>
                                 <td>Server Name</td>
-                                <td><%=Environment.MachineName %></td>
+                                <td><%= Environment.MachineName %></td>
                             </tr>
                             <tr>
                                 <td>Server IP</td>
-                                <td><%=Request.ServerVariables["LOCAL_ADDR"]%></td>
+                                <td><%= Request.ServerVariables["LOCAL_ADDR"] %></td>
                             </tr>
                             <tr>
-                                <td>Operating System</td>
-                                <td><%=FriendlyOSName()%></td>
+                                <td>Operating System Name</td>
+                                <td><%= FriendlyOsName() %></td>
+                            </tr>
+                            <tr>
+                                <td>Operating System Version</td>
+                                <td><%= Environment.OSVersion.VersionString %></td>
+                            </tr>
+                            <tr>
+                                <td>Server Uptime</td>
+                                <td>
+                                    <% TimeSpan ts = TimeSpan.FromMilliseconds(Environment.TickCount);
+                                       Response.Write(string.Format("{0}days {1}hrs {2}mins", ts.Days, ts.Hours, ts.Minutes)); %>
+                                </td>
                             </tr>
                             <tr>
                                 <td>Processor Count</td>
-                                <td><%=Environment.ProcessorCount%></td>
+                                <td><%= Environment.ProcessorCount %></td>
                             </tr>
                             <tr>
                                 <td>Internet Information Services (IIS) Version</td>
-                                <td><%=GetIISVersion()%></td>
+                                <td><%= GetIisVersion() %></td>
+                            </tr>
+                            <tr>
+                                <td>IIS Using Integrated Pipeline</td>
+                                <td><%= HttpRuntime.UsingIntegratedPipeline %></td>
                             </tr>
                             <tr>
                                 <td>.Net Version (Current)</td>
-                                <td><%=Environment.Version%></td>
+                                <td><%= Environment.Version %></td>
                             </tr>
-                            <%--                            <tr>
-                                <td>.Net Version (Highest)</td>
-                                <td><%=Environment.Version%></td>
-                            </tr>--%>
+                            <tr>
+                                <td>Current Time</td>
+                                <td><%= DateTime.Now.ToString("F") + "<br/><span class=\"text-muted small\">" + TimeZone.CurrentTimeZone.StandardName %></span></td>
+                            </tr>
+                            <tr>
+                                <td>Culture</td>
+                                <td><%= CultureInfo.CurrentCulture.Name + " // " + CultureInfo.CurrentCulture.EnglishName %></td>
+                            </tr>
+                            <tr>
+                                <td>UI Culture</td>
+                                <td><%= CultureInfo.CurrentUICulture.Name + " // " + CultureInfo.CurrentUICulture.EnglishName %></td>
+                            </tr>
+                            <tr>
+                                <td>System Directory</td>
+                                <td><%= Environment.SystemDirectory %></td>
+                            </tr>
+                            <tr>
+                                <td>Current User</td>
+                                <td><%= (Environment.UserDomainName + @"\" + Environment.UserName) %></td>
+                            </tr>
                     </table>
                 </div>
-            </div>
-        </div>
 
-        <div class="row">
-            <div class="col-md-12">
-                <h3>.NET Versions Installed</h3>
-                <div class="col-md-6">
-                    <table class="table table-condensed">
-                        <thead>
+                <a role="link" id="dotnetVersions"></a>
+                <div>
+                    <h3 class="text-primary">
+                        <img src="http://www.microsoft.com/web/media/icons/dotnet-icon.png" alt=".net logo" style="height: 18px;" />.NET<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                </div>
+
+                <div class="pull-left" style="width: 50%;">
+
+                    <table class="table table-striped">
+                        <thead class="text-primary">
                             <tr>
-                                <th>Installed Version (derived from filesystem)</th>
+                                <th>Version (derived from filesystem)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -197,7 +269,7 @@
                                 string[] versions = Directory.GetDirectories(@"C:\Windows\Microsoft.NET\Framework", "v*");
                                 string version = "Unknown";
 
-                                for (int i = versions.Length - 1; i >= 0; i--)
+                                for (int i = 0; i < versions.Length; i++)
                                 {
                                     int startIndex = versions[i].LastIndexOf("\\") + 2;
                                     version = versions[i].Substring(startIndex, versions[i].Length - startIndex);
@@ -211,11 +283,11 @@
                     </table>
                 </div>
 
-                <div class="col-md-6">
-                    <table class="table table-condensed">
-                        <thead>
+                <div class="pull-right" style="width: 50%;">
+                    <table class="table table-striped">
+                        <thead class="text-primary">
                             <tr>
-                                <th>Installed Version (derived from registry)</th>
+                                <th>Version (derived from registry)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -236,73 +308,99 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
-            <div class="col-md-12">
-                <h3>Active TCP Listeners</h3>
-                <div class="col-md-6">
-                    <table class="table table-condensed">
-                        <thead>
+                <div class="clearfix"></div>
+
+                <a role="link" id="activeListeners"></a>
+                <div>
+                    <h3 class="text-primary">Active Listeners<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <table class="table table-striped">
+                        <thead class="text-primary">
                             <tr>
                                 <th>Address</th>
-                                <th>Port</th>
+                                <th>TCP</th>
+                                <th>UDP</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            <%  
-                                IPGlobalProperties properties = IPGlobalProperties.GetIPGlobalProperties();
-                                IPEndPoint[] endPoints = properties.GetActiveTcpListeners();
-                                foreach (System.Net.IPEndPoint e in endPoints)
+                            <%
+                                string[] serviceLines = null;
+                                if (File.Exists(@"C:\Windows\System32\drivers\etc\services"))
                                 {
-                                    if (!e.Address.IsIPv6LinkLocal && !e.Address.IsIPv6Multicast && !e.Address.IsIPv6SiteLocal)
+                                    serviceLines = File.ReadAllLines(@"C:\Windows\System32\drivers\etc\services");
+                                }
+                                IPGlobalProperties properties = IPGlobalProperties.GetIPGlobalProperties();
+                                List<IPEndPointWithType> endpoints = new List<IPEndPointWithType>();
+                                foreach (IPEndPoint ep in properties.GetActiveTcpListeners())
+                                {
+                                    endpoints.Add(new IPEndPointWithType(ep, EndpointType.Tcp));
+                                }
+                                foreach (IPEndPoint ep in properties.GetActiveUdpListeners())
+                                {
+                                    endpoints.Add(new IPEndPointWithType(ep, EndpointType.Udp));
+                                }
+                                endpoints.Sort(CompareEndpoints);
+
+                                foreach (IPEndPointWithType ep in endpoints)
+                                {
+                                    if (ep.Address.ToString() != "127.0.0.1")
                                     {
-                                        Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", e.Address, e.Port));
+                                        string portName = Array.Find(serviceLines, delegate(string s) { return s.Contains(string.Format("{0}/{1}", ep.Port, ep.EndpointType.ToString().ToLowerInvariant())); });
+                                        if (portName != null)
+                                        {
+                                            portName = portName.Substring(0, portName.IndexOf(' '));
+                                        }
+                                        else
+                                        {
+                                            portName = string.Empty;
+                                        }
+
+                                        if (ep.EndpointType == EndpointType.Tcp)
+                                        {
+                                            Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td><td></td><td>{2}</td></tr>", ep.Address, ep.Port, portName));
+                                        }
+                                        else
+                                        {
+                                            Response.Write(string.Format("<tr><td>{0}</td><td></td><td>{1}</td><td>{2}</td></tr>", ep.Address, ep.Port, portName));
+                                        }
                                     }
                                 }
                             %>
                     </table>
                 </div>
-            </div>
 
-            <div class="col-md-12">
-                <h3>Environment</h3>
-                <div class="col-md-12">
-                    <table class="table table-condensed">
-                        <thead>
+                <a role="link" id="environmentVariables"></a>
+                <div>
+                    <h3 class="text-primary">Environment Variables<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <table class="table table-striped">
+                        <thead class="text-primary">
                             <tr>
                                 <th>Property</th>
                                 <th>Value</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <%  
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.MachineName", Environment.MachineName));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.OSVersion.VersionString", Environment.OSVersion.VersionString));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.ProcessorCount", Environment.ProcessorCount));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.SystemDirectory", Environment.SystemDirectory));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.UserDomainName", Environment.UserDomainName));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.UserName", Environment.UserName));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Environment.Version", Environment.Version.ToString()));
+                            <%
                                 foreach (string key in Environment.GetEnvironmentVariables().Keys)
                                 {
-                                    Response.Write(string.Format("<tr><td>Environment.GetEnvironmentVariable(\"{0}\")</td><td>{1}</td></tr>", key, (Environment.GetEnvironmentVariable(key) ?? "").Replace(";", "<br/>")));
+                                    Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", key, (Environment.GetEnvironmentVariable(key) ?? "").Replace(";", "<br/>")));
                                 }
                             %>
                     </table>
                 </div>
-            </div>
 
-            <div class="col-md-12">
-                <h3>Request</h3>
-                <div class="col-md-12">
-                    <table class="table table-condensed">
-                        <thead>
+                <a role="link" id="requestProperties"></a>
+                <div>
+                    <h3 class="text-primary">Request Properties<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <table class="table table-striped">
+                        <thead class="text-primary">
                             <tr>
                                 <th>Property</th>
                                 <th>Value</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <%  
+                            <%
                                 Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.ApplicationPath", Request.ApplicationPath));
                                 Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.AppRelativeCurrentExecutionFilePath", Request.AppRelativeCurrentExecutionFilePath));
                                 Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.CurrentExecutionFilePath", Request.CurrentExecutionFilePath));
@@ -313,82 +411,160 @@
                                 Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.LogonUserIdentity", Request.LogonUserIdentity.Name));
                                 Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.PhysicalApplicationPath", Request.PhysicalApplicationPath));
                                 Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.PhysicalPath", Request.PhysicalPath));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.PhysicalApplicationPath", Request.PhysicalApplicationPath));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.Url", Request.Url.ToString()));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.Url", Request.Url));
                                 Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.UserAgent", Request.UserAgent));
                                 Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.UserHostAddress", Request.UserHostAddress));
                                 Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.UserHostName", Request.UserHostName));
-                                Response.Write("<tr><th colspan=\"2\">Request.Headers</th></tr>");
+                            %>
+                    </table>
+                </div>
+
+                <a role="link" id="requestHeaders"></a>
+                <div>
+                    <h3 class="text-primary">Request Headers<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <table class="table table-striped">
+                        <thead class="text-primary">
+                            <tr>
+                                <th>Property</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <%
                                 foreach (string key in Request.Headers.AllKeys)
                                 {
-                                    Response.Write(string.Format("<tr><td>Request.Headers[\"{0}\"]</td><td>{1}</td></tr>", key, (Request.Headers[key] ?? "").Trim()));
+                                    Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", key, (Request.Headers[key] ?? "").Trim()));
                                 }
-                                Response.Write("<tr><th colspan=\"2\">Request.ServerVariables</th></tr>");
+                            %>
+                    </table>
+                </div>
+
+
+                <% if (HttpRuntime.UsingIntegratedPipeline)
+                   {
+                %>
+                <a role="link" id="responseHeaders"></a>
+                <div>
+                    <h3 class="text-primary">Response Headers<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <table class="table table-striped">
+                        <thead class="text-primary">
+                            <tr>
+                                <th>Property</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <%
+                       foreach (string key in Response.Headers.AllKeys)
+                       {
+                           string headerValue = Response.Headers[key];
+                           if (!string.IsNullOrEmpty(headerValue))
+                           {
+                               Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", key, (Response.Headers[key] ?? "")));
+                           }
+                       }
+                            %>
+                    </table>
+                </div>
+                <% } %>
+
+                <a role="link" id="serverVariables"></a>
+                <div>
+                    <h3 class="text-primary">Request Server Variables<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <table class="table table-striped">
+                        <thead class="text-primary">
+                            <tr>
+                                <th>Property</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <%
                                 foreach (string key in Request.ServerVariables.AllKeys)
                                 {
                                     string headerValue = Request.ServerVariables[key];
                                     if (!string.IsNullOrEmpty(headerValue))
                                     {
-                                        Response.Write(string.Format("<tr><td>Request.ServerVariables[\"{0}\"]</td><td>{1}</td></tr>", key, (Request.ServerVariables[key] ?? "").Trim()));
+                                        Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", key, (Request.ServerVariables[key] ?? "").Trim()));
                                     }
                                 }
                             %>
                     </table>
                 </div>
-            </div>
 
-            <% if (HttpRuntime.UsingIntegratedPipeline)
-               {
-            %>
-            <div class="col-md-12">
-                <h3>Response</h3>
-                <div class="col-md-12">
-                    <table class="table table-condensed">
-                        <thead>
+                <a role="link" id="connectionStrings"></a>
+                <div>
+                    <h3 class="text-primary">Connection Strings<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <table class="table table-striped">
+                        <thead class="text-primary">
                             <tr>
-                                <th>Property</th>
+                                <th>Name</th>
+                                <th></th>
+                                <th>Connection String</th>
+                                <th>Provider</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <%
+                                foreach (ConnectionStringSettings css in WebConfigurationManager.ConnectionStrings)
+                                {
+                                    SqlConnectionStringBuilder csb = new SqlConnectionStringBuilder(css.ConnectionString);
+                                    csb.ConnectTimeout = 2;
+                                    csb.PersistSecurityInfo = true;
+
+                                    bool goodConnection;
+                                    try
+                                    {
+                                        using (SqlConnection c = new SqlConnection(csb.ConnectionString))
+                                        {
+                                            c.Open();
+                                        }
+
+                                        goodConnection = true;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        goodConnection = false;
+                                    }
+
+
+                                    Response.Write(string.Format("<tr class=\"" + (goodConnection ? "success" : "danger") + "\"><td>{0}</td><td>{3}</td><td>{1}</td><td>{2}</td></tr>", css.Name, css.ConnectionString, css.ProviderName, goodConnection ? "<span class=\"glyphicon glyphicon-ok small\"></span>" : "<span class=\"glyphicon glyphicon-remove small\"></span>"));
+                                }
+                            %>
+                    </table>
+                </div>
+
+                <a role="link" id="appSettings"></a>
+                <div>
+                    <h3 class="text-primary">App Settings<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <table class="table table-striped">
+                        <thead class="text-primary">
+                            <tr>
+                                <th>Name</th>
                                 <th>Value</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <%  
-                   foreach (string key in Response.Headers.AllKeys)
-                   {
-                       string headerValue = Response.Headers[key];
-                       if (!string.IsNullOrEmpty(headerValue))
-                       {
-                           Response.Write(string.Format("<tr><td>Response.Headers[\"{0}\"]</td><td>{1}</td></tr>", key, (Response.Headers[key] ?? "")));
-                       }
-                   }
+                            <%
+                                foreach (string key in WebConfigurationManager.AppSettings.AllKeys)
+                                {
+                                    Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", key, WebConfigurationManager.AppSettings[key]));
+                                }
                             %>
                     </table>
                 </div>
-            </div>
-            <% } %>
 
-            <div class="col-md-12">
-                <h3>IIS</h3>
-                <div class="col-md-12">
-                    <table class="table table-condensed">
-                        <thead>
+                <a role="link" id="gac"></a>
+                <div>
+                    <h3 class="text-primary">Global Assembly Cache (GAC)<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <table class="table table-striped">
+                        <thead class="text-primary">
                             <tr>
-                                <th>Property</th>
-                                <th>Value</th>
+                                <th>Name</th>
+                                <th>Version</th>
+                                <th>String</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <%  
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "IIS Version", GetIISVersion()));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "HttpRuntime.UsingIntegratedPipeline", HttpRuntime.UsingIntegratedPipeline));
-                            %>
-                    </table>
-                </div>
-            </div>
-
-            <div class="col-md-12">
-                <h3>Global Assembly Cache (GAC)</h3>
-                <div class="col-md-12">
-                    <table class="table table-condensed">
                         <tbody>
                             <% try
                                {
@@ -419,7 +595,9 @@
                                                }
                                            }
                                        }
-                                       allAssemblies.Sort();
+                                       allAssemblies.Sort(CompareStrings);
+
+                                       List<string> assemblyInfo = new List<string>();
 
                                        foreach (string dll in allAssemblies)
                                        {
@@ -431,26 +609,39 @@
                                                    string dir = fi.FullName.Replace(dll + @"\", "");
                                                    dir = dir.Substring(0, dir.IndexOf('\\'));
 
-                                                   string[] parts = dir.Replace("__","_").Split('_');
+                                                   assemblyInfo.Add(fi.Name + "~" + dir.Replace("__", "~"));
 
-                                                   string dllVersion = parts[0];
-                                                   string dllKey = parts[1];
-                                                   
-                                                   string asmString = string.Format("{2}, Version={0}, PublicKeyToken={1}", dllVersion, dllKey, fi.Name);
-                                                   Response.Write(string.Format("<tr><td>{0}</td></tr>", asmString));
                                                }
                                            }
                                        }
+
+                                       assemblyInfo.Sort(CompareStrings);
+
+                                       foreach (string dllInfo in assemblyInfo)
+                                       {
+                                           string[] parts = dllInfo.Split('~');
+
+                                           string dll = parts[0];
+                                           string dllVersion = parts[1];
+                                           string dllKey = parts[2];
+
+                                           string asmString = string.Format("{2}, Version={0}, PublicKeyToken={1}", dllVersion, dllKey, dll);
+                                           Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td><td>{2}</td></tr>", dll.Replace(".dll", string.Empty), dllVersion, asmString));
+                                       }
+
                                    }
                                }
-                               catch (NotSupportedException ex) { Response.Write(ex.Message); }
+                               catch (NotSupportedException ex)
+                               {
+                                   Response.Write(ex.Message);
+                               }
                             %>
                     </table>
                 </div>
             </div>
-
         </div>
     </div>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
     <script type="text/javascript" src="http://maxcdn.bootstrapcdn.com/bootstrap/latest/js/bootstrap.min.js"></script>
 </body>
 </html>
