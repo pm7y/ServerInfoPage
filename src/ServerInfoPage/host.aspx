@@ -781,7 +781,7 @@
                                            string dllKey = parts[2];
 
                                            string asmString = string.Format("{2}, Version={0}, PublicKeyToken={1}", dllVersion, dllKey, dll);
-                                           Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td><td>{2}</td></tr>", dll.Replace(".dll", string.Empty), dllVersion, asmString));
+                                           Response.Write(string.Format("<tr><td><a href=\"https://startpage.com/do/search?query={0}.dll\" target=\"_blank\"><span class=\"glyphicon glyphicon-new-window small\"></span>&nbsp;{0}</a></td><td>{1}</td><td>{2}</td></tr>", dll.Replace(".dll", string.Empty), dllVersion, asmString));
                                        }
 
                                    }
