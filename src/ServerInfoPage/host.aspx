@@ -6,7 +6,7 @@
     CompilerOptions="/optimize+"
     Culture="en-AU"
     UICulture="en-AU"
-    EnableSessionState="false"
+    EnableSessionState="true"
     EnableViewState="false"
     EnableTheming="false"
     EnableViewStateMac="false"
@@ -14,6 +14,7 @@
 
 <%@ Import Namespace="System.Collections.Generic" %>
 <%@ Import Namespace="System.Data.SqlClient" %>
+<%@ Import Namespace="System.Diagnostics" %>
 <%@ Import Namespace="System.Globalization" %>
 <%@ Import Namespace="System.IO" %>
 <%@ Import Namespace="System.Net" %>
@@ -31,6 +32,18 @@
     <link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css" />
     <title>ASP.NET Host Info Script</title>
     <script runat="server">
+        private string BoolIcon(object val)
+        {
+            val = (val ?? "false").ToString().ToLowerInvariant();
+            bool ok = Convert.ToBoolean(val);
+            string html = "<span class=\"glyphicon glyphicon-remove\"></span>";
+            if (ok)
+            {
+                html = "<span class=\"glyphicon glyphicon-ok\"></span>";
+            }
+
+            return html;
+        }
 
         private enum EndpointType
         {
@@ -166,6 +179,7 @@
         <br />
         <ol class="breadcrumb" style="font-size: 0.75em;">
             <li><a href="#essentialInfo">Essential</a></li>
+            <li><a href="#process">Process</a></li>
             <li><a href="#dotnetVersions">.NET</a></li>
             <li><a href="#activeListeners">Ports</a></li>
             <li><a href="#environmentVariables">Environment Vars</a></li>
@@ -173,8 +187,11 @@
             <li><a href="#requestHeaders">Request Headers</a></li>
             <li><a href="#responseHeaders">Response Headers</a></li>
             <li><a href="#serverVariables">Server Vars</a></li>
+            <li><a href="#session">Session</a></li>
             <li><a href="#connectionStrings">Connection Strs</a></li>
-            <li><a href="#appSettings">App Settings</a></li>
+            <% if (WebConfigurationManager.AppSettings.Count > 0)
+               { %><li><a href="#appSettings">App Settings</a></li>
+            <% } %>
             <li><a href="#gac">GAC</a></li>
         </ol>
         <div class="panel panel-default">
@@ -221,7 +238,7 @@
                             </tr>
                             <tr>
                                 <td>IIS Using Integrated Pipeline</td>
-                                <td><%= HttpRuntime.UsingIntegratedPipeline %></td>
+                                <td><%= BoolIcon(HttpRuntime.UsingIntegratedPipeline) %></td>
                             </tr>
                             <tr>
                                 <td>.Net Version (Current)</td>
@@ -246,6 +263,74 @@
                             <tr>
                                 <td>Current User</td>
                                 <td><%= (Environment.UserDomainName + @"\" + Environment.UserName) %></td>
+                            </tr>
+                            <tr>
+                                <td>Physical App Path</td>
+                                <td><% =Request.PhysicalApplicationPath %></td>
+                            </tr>
+                            <tr>
+                                <td>Physical App Path is Writeable</td>
+                                <td><% 
+                                        
+                                        string testFile = Path.Combine(Request.PhysicalApplicationPath, Environment.TickCount.ToString() + ".txt");
+                                        try
+                                        {
+                                            using (File.Create(testFile))
+                                            {
+                                                //
+                                            }
+                                            File.Delete(testFile);
+                                            Response.Write(BoolIcon(true));
+                                        }
+                                        catch (UnauthorizedAccessException)
+                                        {
+                                            Response.Write(BoolIcon(false));
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Response.Write(ex.Message);
+                                        }
+
+                                %></td>
+                            </tr>
+                    </table>
+                </div>
+
+                <a role="link" id="process"></a>
+                <div>
+                    <h3 class="text-primary">Process<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <table class="table table-striped">
+                        <thead class="text-primary">
+                            <tr>
+                                <th>Property</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Process Memory Usage (mb)</td>
+                                <td><% =GC.GetTotalMemory(false)/1024/1024 %></td>
+                            </tr>
+                            <tr>
+                                <td>Process Start Time</td>
+                                <td><%= Process.GetCurrentProcess().StartTime.ToString("F") + "<br/><span class=\"text-muted small\">" + TimeZone.CurrentTimeZone.StandardName %></span></td>
+                            </tr>
+                            <tr>
+                                <td>Process Total Processor Time</td>
+                                <td><% TimeSpan pcputs = Process.GetCurrentProcess().TotalProcessorTime;
+                                       Response.Write(string.Format("{0}days {1}hrs {2}mins {3}secs", pcputs.Days, pcputs.Hours, pcputs.Minutes, pcputs.Seconds)); %></td>
+                            </tr>
+                            <tr>
+                                <td>% Processor Time</td>
+                                <td><%
+                                        double cpu = Process.GetCurrentProcess().TotalProcessorTime.TotalMilliseconds;
+                                        double total = TimeSpan.FromTicks(DateTime.UtcNow.Ticks - Process.GetCurrentProcess().StartTime.ToUniversalTime().Ticks).TotalMilliseconds;
+
+                                        Response.Write(Math.Round((cpu / total) * 100, 2, MidpointRounding.AwayFromZero)); %>%</td>
+                            </tr>
+                            <tr>
+                                <td>Process Threads</td>
+                                <td><%= Process.GetCurrentProcess().Threads.Count %></td>
                             </tr>
                     </table>
                 </div>
@@ -401,20 +486,20 @@
                         </thead>
                         <tbody>
                             <%
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.ApplicationPath", Request.ApplicationPath));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.AppRelativeCurrentExecutionFilePath", Request.AppRelativeCurrentExecutionFilePath));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.CurrentExecutionFilePath", Request.CurrentExecutionFilePath));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.FilePath", Request.FilePath));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.Path", Request.Path));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.HttpMethod", Request.HttpMethod));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.IsSecureConnection", Request.IsSecureConnection));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.LogonUserIdentity", Request.LogonUserIdentity.Name));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.PhysicalApplicationPath", Request.PhysicalApplicationPath));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.PhysicalPath", Request.PhysicalPath));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.Url", Request.Url));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.UserAgent", Request.UserAgent));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.UserHostAddress", Request.UserHostAddress));
-                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Request.UserHostName", Request.UserHostName));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "ApplicationPath", Request.ApplicationPath));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "AppRelativeCurrentExecutionFilePath", Request.AppRelativeCurrentExecutionFilePath));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "CurrentExecutionFilePath", Request.CurrentExecutionFilePath));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "FilePath", Request.FilePath));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Path", Request.Path));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "HttpMethod", Request.HttpMethod));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "IsSecureConnection", BoolIcon(Request.IsSecureConnection)));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "LogonUserIdentity", Request.LogonUserIdentity.Name));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "PhysicalApplicationPath", Request.PhysicalApplicationPath));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "PhysicalPath", Request.PhysicalPath));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "Url", Request.Url));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "UserAgent", Request.UserAgent));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "UserHostAddress", Request.UserHostAddress));
+                                Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", "UserHostName", Request.UserHostName));
                             %>
                     </table>
                 </div>
@@ -492,6 +577,74 @@
                     </table>
                 </div>
 
+                <a role="link" id="session"></a>
+                <div>
+                    <h3 class="text-primary">Session<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <table class="table table-striped">
+                        <thead class="text-primary">
+                            <tr>
+                                <th>Property</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>SessionID</td>
+                                <td><%=Session.SessionID %></td>
+                            </tr>
+                            <tr>
+                                <td>CodePage</td>
+                                <td><%=Session.CodePage %></td>
+                            </tr>
+                            <tr>
+                                <td>CookieMode</td>
+                                <td><%=Session.CookieMode.ToString() %></td>
+                            </tr>
+                            <tr>
+                                <td>Item Count</td>
+                                <td><%=Session.Count.ToString() %></td>
+                            </tr>
+                            <tr>
+                                <td>IsCookieless</td>
+                                <td><%=BoolIcon(Session.IsCookieless) %></td>
+                            </tr>
+                            <tr>
+                                <td>IsNewSession</td>
+                                <td><%=BoolIcon(Session.IsNewSession) %></td>
+                            </tr>
+                            <tr>
+                                <td>IsReadOnly</td>
+                                <td><%=BoolIcon(Session.IsReadOnly) %></td>
+                            </tr>
+                            <tr>
+                                <td>IsSynchronized</td>
+                                <td><%=BoolIcon(Session.IsSynchronized) %></td>
+                            </tr>
+                            <tr>
+                                <td>LCID</td>
+                                <td><%=Session.LCID.ToString() %></td>
+                            </tr>
+                            <tr>
+                                <td>Mode</td>
+                                <td><%=Session.Mode.ToString() %></td>
+                            </tr>
+                            <tr>
+                                <td>Timeout</td>
+                                <td><%=Session.Timeout.ToString() %></td>
+                            </tr>
+                            <% 
+                                foreach (string key in Session.Keys)
+                                {
+                                    string sessionValue = Session[key].ToString();
+                                    if (!string.IsNullOrEmpty(sessionValue))
+                                    {
+                                        Response.Write(string.Format("<tr><td>Session[\"{0}\"]</td><td>{1}</td></tr>", key, sessionValue));
+                                    }
+                                }
+                            %>
+                    </table>
+                </div>
+
                 <a role="link" id="connectionStrings"></a>
                 <div>
                     <h3 class="text-primary">Connection Strings<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
@@ -534,6 +687,8 @@
                     </table>
                 </div>
 
+                <% if (WebConfigurationManager.AppSettings.Count > 0)
+                   { %>
                 <a role="link" id="appSettings"></a>
                 <div>
                     <h3 class="text-primary">App Settings<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
@@ -546,13 +701,14 @@
                         </thead>
                         <tbody>
                             <%
-                                foreach (string key in WebConfigurationManager.AppSettings.AllKeys)
-                                {
-                                    Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", key, WebConfigurationManager.AppSettings[key]));
-                                }
+                       foreach (string key in WebConfigurationManager.AppSettings.AllKeys)
+                       {
+                           Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", key, WebConfigurationManager.AppSettings[key]));
+                       }
                             %>
                     </table>
                 </div>
+                <% } %>
 
                 <a role="link" id="gac"></a>
                 <div>
