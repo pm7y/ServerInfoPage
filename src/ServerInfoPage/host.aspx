@@ -1,16 +1,7 @@
 ﻿<%@ Page Language="C#"
     Trace="false"
     Debug="false"
-    AspCompat="true"
-    CompilationMode="Always"
-    CompilerOptions="/optimize+"
-    Culture="en-AU"
-    UICulture="en-AU"
-    EnableSessionState="true"
-    EnableViewState="false"
-    EnableTheming="false"
-    EnableViewStateMac="false"
-    ValidateRequest="true" %>
+    CompilerOptions="/optimize+" %>
 
 <%@ Import Namespace="System.Collections.Generic" %>
 <%@ Import Namespace="System.Data.SqlClient" %>
@@ -27,7 +18,6 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <%--<meta name="viewport" content="width=device-width, initial-scale=1">--%>
     <meta name="description" content="ASP.NET Host Info Script">
     <link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css" />
     <title>ASP.NET Host Info Script</title>
@@ -35,14 +25,20 @@
         private string BoolIcon(object val)
         {
             val = (val ?? "false").ToString().ToLowerInvariant();
-            bool ok = Convert.ToBoolean(val);
-            string html = "<span class=\"glyphicon glyphicon-remove\"></span>";
-            if (ok)
-            {
-                html = "<span class=\"glyphicon glyphicon-ok\"></span>";
-            }
+            return string.Format("<span class=\"glyphicon glyphicon-{0}\"></span>", Convert.ToBoolean(val) ? "ok" : "remove");
+        }
 
-            return html;
+        private bool HasInternetConnectivity()
+        {
+            try
+            {
+                string html = new WebClient().DownloadString("http://google.com/");
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private enum EndpointType
@@ -51,7 +47,7 @@
             Tcp
         }
 
-        class IPEndPointWithType : IPEndPoint
+        private class IPEndPointWithType : IPEndPoint
         {
             private EndpointType _endpointType;
             public EndpointType EndpointType
@@ -231,6 +227,10 @@
                             <tr>
                                 <td>Processor Count</td>
                                 <td><%= Environment.ProcessorCount %></td>
+                            </tr>
+                            <tr>
+                                <td>Internet Access</td>
+                                <td><%= BoolIcon(HasInternetConnectivity()) %></td>
                             </tr>
                             <tr>
                                 <td>Internet Information Services (IIS) Version</td>
@@ -797,7 +797,5 @@
             </div>
         </div>
     </div>
-    <script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
-    <script type="text/javascript" src="http://maxcdn.bootstrapcdn.com/bootstrap/latest/js/bootstrap.min.js"></script>
 </body>
 </html>
