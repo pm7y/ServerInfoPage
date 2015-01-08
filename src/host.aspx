@@ -2,24 +2,21 @@
     Trace="false"
     Debug="false"
     CompilerOptions="/optimize+" %>
-
 <%@ Import Namespace="System.Collections.Generic" %>
-<%@ Import Namespace="System.Data.SqlClient" %>
 <%@ Import Namespace="System.Diagnostics" %>
 <%@ Import Namespace="System.Globalization" %>
 <%@ Import Namespace="System.IO" %>
 <%@ Import Namespace="System.Net" %>
 <%@ Import Namespace="System.Net.NetworkInformation" %>
-<%@ Import Namespace="System.Web.Configuration" %>
 <%@ Import Namespace="Microsoft.Win32" %>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="description" content="ASP.NET Host Info Script">
-    <link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css" />
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css" />
     <title>ASP.NET Host Info Script</title>
     <script runat="server">
         private string BoolIcon(object val)
@@ -189,10 +186,6 @@
                     <li><a href="#responseHeaders">Response Headers</a></li>
                     <li><a href="#serverVariables">Server Vars</a></li>
                     <li><a href="#session">Session</a></li>
-                    <li><a href="#connectionStrings">Connection Strs</a></li>
-                    <% if (WebConfigurationManager.AppSettings.Count > 0)
-                       { %><li><a href="#appSettings">App Settings</a></li>
-                    <% } %>
                     <li><a href="#gac">GAC</a></li>
                 </ol>
                 <div>
@@ -644,82 +637,10 @@
                     </table>
                 </div>
 
-                <a role="link" id="connectionStrings"></a>
-                <div>
-                    <h3 class="text-primary">Connection Strings<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
-                    <table class="table table-striped">
-                        <thead class="text-primary">
-                            <tr>
-                                <th>Name</th>
-                                <th></th>
-                                <th>Connection String</th>
-                                <th>Provider</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <%
-                                foreach (ConnectionStringSettings css in WebConfigurationManager.ConnectionStrings)
-                                {
-                                    SqlConnectionStringBuilder csb = new SqlConnectionStringBuilder(css.ConnectionString);
-                                    csb.ConnectTimeout = 2;
-                                    csb.PersistSecurityInfo = true;
-
-                                    bool goodConnection;
-                                    try
-                                    {
-                                        using (SqlConnection c = new SqlConnection(csb.ConnectionString))
-                                        {
-                                            c.Open();
-                                        }
-
-                                        goodConnection = true;
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        goodConnection = false;
-                                    }
-
-
-                                    Response.Write(string.Format("<tr class=\"" + (goodConnection ? "success" : "danger") + "\"><td>{0}</td><td>{3}</td><td>{1}</td><td>{2}</td></tr>", css.Name, css.ConnectionString, css.ProviderName, goodConnection ? "<span class=\"glyphicon glyphicon-ok small\"></span>" : "<span class=\"glyphicon glyphicon-remove small\"></span>"));
-                                }
-                            %>
-                    </table>
-                </div>
-
-                <% if (WebConfigurationManager.AppSettings.Count > 0)
-                   { %>
-                <a role="link" id="appSettings"></a>
-                <div>
-                    <h3 class="text-primary">App Settings<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
-                    <table class="table table-striped">
-                        <thead class="text-primary">
-                            <tr>
-                                <th>Name</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <%
-                       foreach (string key in WebConfigurationManager.AppSettings.AllKeys)
-                       {
-                           Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", key, WebConfigurationManager.AppSettings[key]));
-                       }
-                            %>
-                    </table>
-                </div>
-                <% } %>
-
                 <a role="link" id="gac"></a>
                 <div>
                     <h3 class="text-primary">Global Assembly Cache (GAC)<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
                     <table class="table table-striped">
-                        <thead class="text-primary">
-                            <tr>
-                                <th>Name</th>
-                                <th>Version</th>
-                                <th>String</th>
-                            </tr>
-                        </thead>
                         <tbody>
                             <% try
                                {
@@ -781,7 +702,8 @@
                                            string dllKey = parts[2];
 
                                            string asmString = string.Format("{2}, Version={0}, PublicKeyToken={1}", dllVersion, dllKey, dll);
-                                           Response.Write(string.Format("<tr><td><a href=\"https://startpage.com/do/search?query={0}.dll\" target=\"_blank\"><span class=\"glyphicon glyphicon-new-window small\"></span>&nbsp;{0}</a></td><td>{1}</td><td>{2}</td></tr>", dll.Replace(".dll", string.Empty), dllVersion, asmString));
+                                           Response.Write(string.Format("<tr><td><a href=\"https://startpage.com/do/search?query={0}.dll\" target=\"_blank\"><span class=\"glyphicon glyphicon-new-window small\"></span>&nbsp;{0}</a><br/>{1}</td></tr>", dll.Replace(".dll", string.Empty), asmString));
+                                       
                                        }
 
                                    }
