@@ -2,6 +2,7 @@
     Trace="false"
     Debug="false"
     CompilerOptions="/optimize+" %>
+
 <%@ Import Namespace="System.Collections.Generic" %>
 <%@ Import Namespace="System.Diagnostics" %>
 <%@ Import Namespace="System.Globalization" %>
@@ -9,6 +10,7 @@
 <%@ Import Namespace="System.Net" %>
 <%@ Import Namespace="System.Net.NetworkInformation" %>
 <%@ Import Namespace="Microsoft.Win32" %>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,6 +21,17 @@
     <link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css" />
     <title>ASP.NET Host Info Script</title>
     <script runat="server">
+        public class Tick
+        {
+            [System.Runtime.InteropServices.DllImport("kernel32")]
+            public extern static UInt64 GetTickCount64();
+
+            public static TimeSpan GetUpTime()
+            {
+                return TimeSpan.FromMilliseconds(GetTickCount64());
+            }
+        }
+
         private string BoolIcon(object val)
         {
             val = (val ?? "false").ToString().ToLowerInvariant();
@@ -212,8 +225,10 @@
                             <tr>
                                 <td>Server Uptime</td>
                                 <td>
-                                    <% TimeSpan ts = TimeSpan.FromMilliseconds(Environment.TickCount);
-                                       Response.Write(string.Format("{0}days {1}hrs {2}mins", ts.Days, ts.Hours, ts.Minutes)); %>
+                                    <%
+                                        TimeSpan ts = Tick.GetUpTime();
+                                        Response.Write(string.Format("{0}days {1}hrs {2}mins", ts.Days, ts.Hours, ts.Minutes));
+                                    %>
                                 </td>
                             </tr>
                             <tr>
@@ -703,7 +718,7 @@
 
                                            string asmString = string.Format("{2}, Version={0}, PublicKeyToken={1}", dllVersion, dllKey, dll);
                                            Response.Write(string.Format("<tr><td><a href=\"https://startpage.com/do/search?query={0}.dll\" target=\"_blank\"><span class=\"glyphicon glyphicon-new-window small\"></span>&nbsp;{0}</a><br/>{1}</td></tr>", dll.Replace(".dll", string.Empty), asmString));
-                                       
+
                                        }
 
                                    }
@@ -718,7 +733,7 @@
             </div>
 
             <div class="panel-footer">
-                <span class="text-muted"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>&nbsp;The latest version can be found <a href="https://raw.githubusercontent.com/fallenidol/ServerInfoPage/master/src/ServerInfoPage/host.aspx" target="_blank"><span class="glyphicon glyphicon-new-window small"></span>&nbsp;here</a>. Please raise bugs, issues and functionality requests <a href="https://github.com/fallenidol/ServerInfoPage/issues" target="_blank"><span class="glyphicon glyphicon-new-window small"></span>&nbsp;here</a>.</span>
+                <span class="text-muted"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>&nbsp;The latest version can be found <a href="https://github.com/fallenidol/ServerInfoPage/blob/master/src/host.aspx" target="_blank"><span class="glyphicon glyphicon-new-window small"></span>&nbsp;here</a>. Please raise bugs, issues and functionality requests <a href="https://github.com/fallenidol/ServerInfoPage/issues" target="_blank"><span class="glyphicon glyphicon-new-window small"></span>&nbsp;here</a>.</span>
             </div>
         </div>
     </div>
