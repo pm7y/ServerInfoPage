@@ -1,6 +1,7 @@
 ﻿<%@ Page Language="C#"
     Trace="false"
     Debug="false"
+    CompilationMode="Always"
     CompilerOptions="/optimize+" %>
 
 <%@ Import Namespace="System.Collections.Generic" %>
@@ -10,7 +11,6 @@
 <%@ Import Namespace="System.Net" %>
 <%@ Import Namespace="System.Net.NetworkInformation" %>
 <%@ Import Namespace="Microsoft.Win32" %>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -585,6 +585,8 @@
                 </div>
 
                 <a role="link" id="session"></a>
+                <% if (HttpContext.Current.Session != null)
+                   { %>
                 <div>
                     <h3 class="text-primary">Session<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
                     <table class="table table-striped">
@@ -597,49 +599,49 @@
                         <tbody>
                             <tr>
                                 <td>SessionID</td>
-                                <td><%=Session.SessionID %></td>
+                                <td><%= Session.SessionID %></td>
                             </tr>
                             <tr>
                                 <td>CodePage</td>
-                                <td><%=Session.CodePage + " [" +Encoding.GetEncoding(Session.CodePage, new EncoderExceptionFallback(), new DecoderExceptionFallback()).EncodingName + "]" %></td>
+                                <td><%= Session.CodePage + " [" + Encoding.GetEncoding(Session.CodePage, new EncoderExceptionFallback(), new DecoderExceptionFallback()).EncodingName + "]" %></td>
                             </tr>
                             <tr>
                                 <td>CookieMode</td>
-                                <td><%=Session.CookieMode.ToString() %></td>
+                                <td><%= Session.CookieMode.ToString() %></td>
                             </tr>
                             <tr>
                                 <td>Item Count</td>
-                                <td><%=Session.Count.ToString() %></td>
+                                <td><%= Session.Count.ToString() %></td>
                             </tr>
                             <tr>
                                 <td>IsCookieless</td>
-                                <td><%=BoolIcon(Session.IsCookieless) %></td>
+                                <td><%= BoolIcon(Session.IsCookieless) %></td>
                             </tr>
                             <tr>
                                 <td>IsNewSession</td>
-                                <td><%=BoolIcon(Session.IsNewSession) %></td>
+                                <td><%= BoolIcon(Session.IsNewSession) %></td>
                             </tr>
                             <tr>
                                 <td>IsReadOnly</td>
-                                <td><%=BoolIcon(Session.IsReadOnly) %></td>
+                                <td><%= BoolIcon(Session.IsReadOnly) %></td>
                             </tr>
                             <tr>
                                 <td>IsSynchronized</td>
-                                <td><%=BoolIcon(Session.IsSynchronized) %></td>
+                                <td><%= BoolIcon(Session.IsSynchronized) %></td>
                             </tr>
                             <tr>
                                 <td>LCID</td>
-                                <td><%=Session.LCID.ToString() + " [" + new CultureInfo(Session.LCID).EnglishName + "]"  %></td>
+                                <td><%= Session.LCID.ToString() + " [" + new CultureInfo(Session.LCID).EnglishName + "]" %></td>
                             </tr>
                             <tr>
                                 <td>Mode</td>
-                                <td><%=Session.Mode.ToString() %></td>
+                                <td><%= Session.Mode.ToString() %></td>
                             </tr>
                             <tr>
                                 <td>Timeout</td>
-                                <td><%=Session.Timeout.ToString() %></td>
+                                <td><%= Session.Timeout.ToString() %></td>
                             </tr>
-                            <% 
+                            <%
                                 foreach (string key in Session.Keys)
                                 {
                                     string sessionValue = Session[key].ToString();
@@ -651,7 +653,21 @@
                             %>
                     </table>
                 </div>
+                <% }
+                   else
+                   { %>
+                <div>
+                    <h3 class="text-primary">Session<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <td>Session is turned OFF</td>
+                            </tr>
 
+                    </table>
+                </div>
+                <% } 
+                    %>
                 <a role="link" id="gac"></a>
                 <div>
                     <h3 class="text-primary">Global Assembly Cache (GAC)<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
