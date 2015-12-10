@@ -278,7 +278,7 @@
                             <tr>
                                 <td>Physical App Path is Writeable</td>
                                 <td><% 
-                                        
+
                                         string testFile = Path.Combine(Request.PhysicalApplicationPath, Environment.TickCount.ToString() + ".txt");
                                         try
                                         {
@@ -325,7 +325,7 @@
                             <tr>
                                 <td>Process Total Processor Time</td>
                                 <td><% TimeSpan pcputs = Process.GetCurrentProcess().TotalProcessorTime;
-                                       Response.Write(string.Format("{0}days {1}hrs {2}mins {3}secs", pcputs.Days, pcputs.Hours, pcputs.Minutes, pcputs.Seconds)); %></td>
+                                        Response.Write(string.Format("{0}days {1}hrs {2}mins {3}secs", pcputs.Days, pcputs.Hours, pcputs.Minutes, pcputs.Seconds)); %></td>
                             </tr>
                             <tr>
                                 <td>% Processor Time</td>
@@ -358,7 +358,8 @@
                         </thead>
                         <tbody>
                             <%
-                                string[] versions = Directory.GetDirectories(@"C:\Windows\Microsoft.NET\Framework", "v*");
+                                string runtimeRoot = new DirectoryInfo(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory()).Parent.FullName;
+                                string[] versions = Directory.GetDirectories(runtimeRoot, "v*");
                                 string version = "Unknown";
 
                                 for (int i = 0; i < versions.Length; i++)
@@ -423,21 +424,37 @@
                                 }
                                 IPGlobalProperties properties = IPGlobalProperties.GetIPGlobalProperties();
                                 List<IPEndPointWithType> endpoints = new List<IPEndPointWithType>();
-                                foreach (IPEndPoint ep in properties.GetActiveTcpListeners())
+
+                                string getActiveListenersError = null;
+                                try
                                 {
-                                    endpoints.Add(new IPEndPointWithType(ep, EndpointType.Tcp));
+                                    foreach (IPEndPoint ep in properties.GetActiveTcpListeners())
+                                    {
+                                        endpoints.Add(new IPEndPointWithType(ep, EndpointType.Tcp));
+                                    }
+                                    foreach (IPEndPoint ep in properties.GetActiveUdpListeners())
+                                    {
+                                        endpoints.Add(new IPEndPointWithType(ep, EndpointType.Udp));
+                                    }
                                 }
-                                foreach (IPEndPoint ep in properties.GetActiveUdpListeners())
+                                catch (Exception ex)
                                 {
-                                    endpoints.Add(new IPEndPointWithType(ep, EndpointType.Udp));
+                                    getActiveListenersError = ex.Message;
                                 }
+
+                                if (!string.IsNullOrWhiteSpace(getActiveListenersError))
+                                {
+                                    Response.Write(string.Format("<tr><td colspan=\"3\">{0}</td></tr>", getActiveListenersError));
+                                }
+
+
                                 endpoints.Sort(CompareEndpoints);
 
                                 foreach (IPEndPointWithType ep in endpoints)
                                 {
                                     if (ep.Address.ToString() != "127.0.0.1")
                                     {
-                                        string portName = Array.Find(serviceLines, delegate(string s) { return s.Contains(string.Format("{0}/{1}", ep.Port, ep.EndpointType.ToString().ToLowerInvariant())); });
+                                        string portName = Array.Find(serviceLines, delegate (string s) { return s.Contains(string.Format("{0}/{1}", ep.Port, ep.EndpointType.ToString().ToLowerInvariant())); });
                                         if (portName != null)
                                         {
                                             portName = portName.Substring(0, portName.IndexOf(' '));
@@ -533,7 +550,7 @@
 
 
                 <% if (HttpRuntime.UsingIntegratedPipeline)
-                   {
+                    {
                 %>
                 <a role="link" id="responseHeaders"></a>
                 <div>
@@ -547,14 +564,14 @@
                         </thead>
                         <tbody>
                             <%
-                       foreach (string key in Response.Headers.AllKeys)
-                       {
-                           string headerValue = Response.Headers[key];
-                           if (!string.IsNullOrEmpty(headerValue))
-                           {
-                               Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", key, (Response.Headers[key] ?? "")));
-                           }
-                       }
+                                foreach (string key in Response.Headers.AllKeys)
+                                {
+                                    string headerValue = Response.Headers[key];
+                                    if (!string.IsNullOrEmpty(headerValue))
+                                    {
+                                        Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", key, (Response.Headers[key] ?? "")));
+                                    }
+                                }
                             %>
                     </table>
                 </div>
@@ -586,7 +603,7 @@
 
                 <a role="link" id="session"></a>
                 <% if (HttpContext.Current.Session != null)
-                   { %>
+                    { %>
                 <div>
                     <h3 class="text-primary">Session<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
                     <table class="table table-striped">
@@ -654,8 +671,8 @@
                     </table>
                 </div>
                 <% }
-                   else
-                   { %>
+                    else
+                    { %>
                 <div>
                     <h3 class="text-primary">Session<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
                     <table class="table table-striped">
@@ -666,83 +683,83 @@
 
                     </table>
                 </div>
-                <% } 
-                    %>
+                <% }
+                %>
                 <a role="link" id="gac"></a>
                 <div>
                     <h3 class="text-primary">Global Assembly Cache (GAC)<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
                     <table class="table table-striped">
                         <tbody>
                             <% try
-                               {
-                                   string windows = Environment.GetEnvironmentVariable("SystemRoot");
-                                   if (windows != null)
-                                   {
-                                       string assembly = Path.Combine(windows, @"assembly");
-                                       string[] gacFolders = Directory.GetDirectories(assembly);
+                                {
+                                    string windows = Environment.GetEnvironmentVariable("SystemRoot");
+                                    if (windows != null)
+                                    {
+                                        string assembly = Path.Combine(windows, @"assembly");
+                                        string[] gacFolders = Directory.GetDirectories(assembly);
 
-                                       List<string> allAssemblies = new List<string>();
-                                       foreach (string folder in gacFolders)
-                                       {
-                                           if (folder.ToLowerInvariant().Contains("\\gac"))
-                                           {
-                                               string path = Path.Combine(assembly, folder);
-                                               if (Directory.Exists(path))
-                                               {
-                                                   string[] assemblyFolders = Directory.GetDirectories(path);
+                                        List<string> allAssemblies = new List<string>();
+                                        foreach (string folder in gacFolders)
+                                        {
+                                            if (folder.ToLowerInvariant().Contains("\\gac"))
+                                            {
+                                                string path = Path.Combine(assembly, folder);
+                                                if (Directory.Exists(path))
+                                                {
+                                                    string[] assemblyFolders = Directory.GetDirectories(path);
 
-                                                   if (assemblyFolders.Length <= 0) continue;
-                                                   foreach (string assemblyFolder in assemblyFolders)
-                                                   {
-                                                       if (!allAssemblies.Contains(assemblyFolder))
-                                                       {
-                                                           allAssemblies.Add(assemblyFolder);
-                                                       }
-                                                   }
-                                               }
-                                           }
-                                       }
-                                       allAssemblies.Sort(CompareStrings);
+                                                    if (assemblyFolders.Length <= 0) continue;
+                                                    foreach (string assemblyFolder in assemblyFolders)
+                                                    {
+                                                        if (!allAssemblies.Contains(assemblyFolder))
+                                                        {
+                                                            allAssemblies.Add(assemblyFolder);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        allAssemblies.Sort(CompareStrings);
 
-                                       List<string> assemblyInfo = new List<string>();
+                                        List<string> assemblyInfo = new List<string>();
 
-                                       foreach (string dll in allAssemblies)
-                                       {
-                                           FileInfo[] dlls = new DirectoryInfo(dll).GetFiles("*.dll", SearchOption.AllDirectories);
-                                           foreach (FileInfo fi in dlls)
-                                           {
-                                               if (fi.FullName.Contains("__"))
-                                               {
-                                                   string dir = fi.FullName.Replace(dll + @"\", "");
-                                                   dir = dir.Substring(0, dir.IndexOf('\\'));
+                                        foreach (string dll in allAssemblies)
+                                        {
+                                            FileInfo[] dlls = new DirectoryInfo(dll).GetFiles("*.dll", SearchOption.AllDirectories);
+                                            foreach (FileInfo fi in dlls)
+                                            {
+                                                if (fi.FullName.Contains("__"))
+                                                {
+                                                    string dir = fi.FullName.Replace(dll + @"\", "");
+                                                    dir = dir.Substring(0, dir.IndexOf('\\'));
 
-                                                   assemblyInfo.Add(fi.Name + "~" + dir.Replace("__", "~"));
+                                                    assemblyInfo.Add(fi.Name + "~" + dir.Replace("__", "~"));
 
-                                               }
-                                           }
-                                       }
+                                                }
+                                            }
+                                        }
 
-                                       assemblyInfo.Sort(CompareStrings);
+                                        assemblyInfo.Sort(CompareStrings);
 
-                                       foreach (string dllInfo in assemblyInfo)
-                                       {
-                                           string[] parts = dllInfo.Split('~');
+                                        foreach (string dllInfo in assemblyInfo)
+                                        {
+                                            string[] parts = dllInfo.Split('~');
 
-                                           string dll = parts[0];
-                                           string dllVersion = parts[1];
-                                           string dllKey = parts[2];
+                                            string dll = parts[0];
+                                            string dllVersion = parts[1];
+                                            string dllKey = parts[2];
 
-                                           string asmString = string.Format("{2}, Version={0}, PublicKeyToken={1}", dllVersion, dllKey, dll);
-                                           Response.Write(string.Format("<tr><td><a href=\"https://startpage.com/do/search?query={0}.dll\" target=\"_blank\"><span class=\"glyphicon glyphicon-new-window small\"></span>&nbsp;{0}</a><br/>{1}</td></tr>", dll.Replace(".dll", string.Empty), asmString));
+                                            string asmString = string.Format("{2}, Version={0}, PublicKeyToken={1}", dllVersion, dllKey, dll);
+                                            Response.Write(string.Format("<tr><td><a href=\"https://startpage.com/do/search?query={0}.dll\" target=\"_blank\"><span class=\"glyphicon glyphicon-new-window small\"></span>&nbsp;{0}</a><br/>{1}</td></tr>", dll.Replace(".dll", string.Empty), asmString));
 
-                                       }
+                                        }
 
-                                   }
-                               }
-                               catch (NotSupportedException ex)
-                               {
-                                   Response.Write(ex.Message);
-                               }
+                                    }
+                                }
+                                catch (NotSupportedException ex)
+                                {
+                                    Response.Write(ex.Message);
+                                }
                             %>
                     </table>
                 </div>
