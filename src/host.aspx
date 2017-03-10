@@ -1,15 +1,16 @@
 ﻿<%@ Page Language="C#"
     Trace="false"
-    Debug="false"
+    Debug="true"
     CompilationMode="Always"
     CompilerOptions="/optimize+" %>
 
-<%@ Import Namespace="System.Collections.Generic" %>
 <%@ Import Namespace="System.Diagnostics" %>
+<%@ Import Namespace="System.Collections.Generic" %>
 <%@ Import Namespace="System.Globalization" %>
 <%@ Import Namespace="System.IO" %>
 <%@ Import Namespace="System.Net" %>
 <%@ Import Namespace="System.Net.NetworkInformation" %>
+<%@ Import Namespace="System.Runtime.InteropServices" %>
 <%@ Import Namespace="Microsoft.Win32" %>
 <!DOCTYPE html>
 <html lang="en">
@@ -21,16 +22,6 @@
     <link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css" />
     <title>ASP.NET Host Info Script</title>
     <script runat="server">
-        public class Tick
-        {
-            [System.Runtime.InteropServices.DllImport("kernel32")]
-            public extern static UInt64 GetTickCount64();
-
-            public static TimeSpan GetUpTime()
-            {
-                return TimeSpan.FromMilliseconds(GetTickCount64());
-            }
-        }
 
         private string BoolIcon(object val)
         {
@@ -42,34 +33,9 @@
         {
             try
             {
-                string html = new WebClient().DownloadString("http://google.com/");
-                return true;
+                return new WebClient().DownloadString("//maxcdn.bootstrapcdn.com/") != null;
             }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private enum EndpointType
-        {
-            Udp,
-            Tcp
-        }
-
-        private class IPEndPointWithType : IPEndPoint
-        {
-            private EndpointType _endpointType;
-            public EndpointType EndpointType
-            {
-                get { return _endpointType; }
-            }
-
-            public IPEndPointWithType(IPEndPoint ep, EndpointType type)
-                : base(ep.Address, ep.Port)
-            {
-                _endpointType = type;
-            }
+            catch { return false; }
         }
 
         private string HKLM_GetString(string path, string key)
@@ -125,11 +91,10 @@
         private List<string> DotNetInstalled()
         {
             List<string> installed = new List<string>();
-            RegistryKey componentsKey = null;
             string v;
 
             List<string> keys = new List<string>();
-            keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Client");
+            //keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Client");
             keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full");
             keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5");
             keys.Add(@"SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.0");
@@ -139,27 +104,64 @@
 
             foreach (string key in keys)
             {
-                componentsKey = Registry.LocalMachine.OpenSubKey(key);
+
+                RegistryKey componentsKey = Registry.LocalMachine.OpenSubKey(key);
                 if (componentsKey != null)
                 {
-                    short installVal = Convert.ToInt16(componentsKey.GetValue("Install"));
-                    short spVal = Convert.ToInt16(componentsKey.GetValue("SP"));
-                    string versionVal = componentsKey.GetValue("Version") as string;
-
-                    if (installVal == 1)
+                    if (key.Contains("v4"))
                     {
-                        string cf = key.Contains(@"\Client") ? "Client Profile" : "";
-
-                        if (spVal == 0)
+                        int rel = Convert.ToInt32(componentsKey.GetValue("Release"));
+                        if (rel >= 378389)
                         {
-                            v = string.Format(".NET {0} [{1}]", versionVal, cf).Replace("[]", string.Empty).Trim();
+                            installed.Add(".NET Framework 4.5");
                         }
-                        else
+                        else if (rel >= 378675)
                         {
-                            v = string.Format(".NET {0} (SP{1}) [{2}]", versionVal, spVal, cf).Replace("[]", string.Empty).Trim();
+                            installed.Add(".NET Framework 4.5.1");
                         }
+                        else if (rel >= 379893)
+                        {
+                            installed.Add(".NET Framework 4.5.2");
+                        }
+                        else if (rel >= 378675)
+                        {
+                            installed.Add(".NET Framework 4.6");
+                        }
+                        else if (rel >= 394254)
+                        {
+                            installed.Add(".NET Framework 4.6.1");
+                        }
+                        else if (rel >= 394747)
+                        {
+                            installed.Add(".NET Framework 4.6.1");
+                        }
+                        else if (rel > 394747)
+                        {
+                            installed.Add(".NET Framework 4.6.?");
+                        }
+                    }
+                    else
+                    {
+                        short installVal = Convert.ToInt16(componentsKey.GetValue("Install"));
+                        short spVal = Convert.ToInt16(componentsKey.GetValue("SP"));
+                        string versionVal = componentsKey.GetValue("Version") as string;
 
-                        installed.Add(v);
+
+                        if (installVal == 1)
+                        {
+                            string cf = key.Contains(@"\Client") ? "Client Profile" : "";
+
+                            if (spVal == 0)
+                            {
+                                v = string.Format(".NET {0} [{1}]", versionVal, cf).Replace("[]", string.Empty).Trim();
+                            }
+                            else
+                            {
+                                v = string.Format(".NET {0} (SP{1}) [{2}]", versionVal, spVal, cf).Replace("[]", string.Empty).Trim();
+                            }
+
+                            installed.Add(v);
+                        }
                     }
                 }
             }
@@ -177,29 +179,82 @@
             return s.ToLowerInvariant().CompareTo(s1.ToLowerInvariant());
         }
 
+        /**/
+
+        public class Tick
+        {
+            [DllImport("kernel32")]
+            public static extern ulong GetTickCount64();
+
+            public static TimeSpan GetUpTime()
+            {
+                return TimeSpan.FromMilliseconds(GetTickCount64());
+            }
+        }
+
+        private enum EndpointType
+        {
+            Udp,
+            Tcp
+        }
+
+        private class IPEndPointWithType : IPEndPoint
+        {
+            public IPEndPointWithType(IPEndPoint ep, EndpointType type)
+                : base(ep.Address, ep.Port)
+            {
+                EndpointType = type;
+            }
+
+            public EndpointType EndpointType;// { get; private set;  }
+        }
+
     </script>
 </head>
-<body role="document" style="font-family: 'Trebuchet MS',Tahoma, Arial;">
+<body role="document" style="font-family: 'Trebuchet MS', Tahoma, Arial;">
     <a role="link" id="home"></a>
     <div class="container" role="main">
         <br />
         <div class="panel panel-default">
             <div class="panel-heading">
-                <h1><span class="glyphicon glyphicon-home" aria-hidden="true" style="font-size: 0.8em;"></span>&nbsp;<%= (Environment.MachineName + " (" + Request.ServerVariables["LOCAL_ADDR"] + ")") %></h1>
+                <h1><span class="glyphicon glyphicon-home" aria-hidden="true" style="font-size: 0.8em;"></span>&nbsp;<%= Environment.MachineName + " (" + Request.ServerVariables["LOCAL_ADDR"] + ")" %>
+                </h1>
             </div>
             <div class="panel-body">
                 <ol class="breadcrumb" style="font-size: 0.75em;">
-                    <li><a href="#essentialInfo">Essential</a></li>
-                    <li><a href="#process">Process</a></li>
-                    <li><a href="#dotnetVersions">.NET</a></li>
-                    <li><a href="#activeListeners">Ports</a></li>
-                    <li><a href="#environmentVariables">Environment Vars</a></li>
-                    <li><a href="#requestProperties">Request Props</a></li>
-                    <li><a href="#requestHeaders">Request Headers</a></li>
-                    <li><a href="#responseHeaders">Response Headers</a></li>
-                    <li><a href="#serverVariables">Server Vars</a></li>
-                    <li><a href="#session">Session</a></li>
-                    <li><a href="#gac">GAC</a></li>
+                    <li>
+                        <a href="#essentialInfo">Essential</a>
+                    </li>
+                    <li>
+                        <a href="#process">Process</a>
+                    </li>
+                    <li>
+                        <a href="#dotnetVersions">.NET</a>
+                    </li>
+                    <li>
+                        <a href="#activeListeners">Ports</a>
+                    </li>
+                    <li>
+                        <a href="#environmentVariables">Environment Vars</a>
+                    </li>
+                    <li>
+                        <a href="#requestProperties">Request Props</a>
+                    </li>
+                    <li>
+                        <a href="#requestHeaders">Request Headers</a>
+                    </li>
+                    <li>
+                        <a href="#responseHeaders">Response Headers</a>
+                    </li>
+                    <li>
+                        <a href="#serverVariables">Server Vars</a>
+                    </li>
+                    <li>
+                        <a href="#session">Session</a>
+                    </li>
+                    <li>
+                        <a href="#gac">GAC</a>
+                    </li>
                 </ol>
                 <div>
                     <a role="link" id="essentialInfo"></a>
@@ -253,7 +308,7 @@
                             </tr>
                             <tr>
                                 <td>Current Time</td>
-                                <td><%= DateTime.Now.ToString("F") + "<br/><span class=\"text-muted small\">" + TimeZone.CurrentTimeZone.StandardName %></span></td>
+                                <td><%= DateTime.Now.ToString("F") + "<br/><span class=\"text-muted small\">" + TimeZone.CurrentTimeZone.StandardName %></td>
                             </tr>
                             <tr>
                                 <td>Culture</td>
@@ -269,17 +324,18 @@
                             </tr>
                             <tr>
                                 <td>Current User</td>
-                                <td><%= (Environment.UserDomainName + @"\" + Environment.UserName) %></td>
+                                <td><%= Environment.UserDomainName + @"\" + Environment.UserName %></td>
                             </tr>
                             <tr>
                                 <td>Physical App Path</td>
-                                <td><% =Request.PhysicalApplicationPath %></td>
+                                <td><% = Request.PhysicalApplicationPath %></td>
                             </tr>
                             <tr>
                                 <td>Physical App Path is Writeable</td>
-                                <td><% 
+                                <td>
+                                    <%
 
-                                        string testFile = Path.Combine(Request.PhysicalApplicationPath, Environment.TickCount.ToString() + ".txt");
+                                        string testFile = Path.Combine(Request.PhysicalApplicationPath, Environment.TickCount + ".txt");
                                         try
                                         {
                                             using (File.Create(testFile))
@@ -297,15 +353,17 @@
                                         {
                                             Response.Write(ex.Message);
                                         }
-
-                                %></td>
+                                    %>
+                                </td>
                             </tr>
                     </table>
                 </div>
 
                 <a role="link" id="process"></a>
                 <div>
-                    <h3 class="text-primary">Process<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <h3 class="text-primary">Process<a href="#home" class="pull-right">
+                        <span class="glyphicon glyphicon-arrow-up small"></span></a>
+                    </h3>
                     <table class="table table-striped">
                         <thead class="text-primary">
                             <tr>
@@ -316,24 +374,28 @@
                         <tbody>
                             <tr>
                                 <td>Process Memory Usage (mb)</td>
-                                <td><% =GC.GetTotalMemory(false)/1024/1024 %></td>
+                                <td><% = GC.GetTotalMemory(false)/1024/1024 %></td>
                             </tr>
                             <tr>
                                 <td>Process Start Time</td>
-                                <td><%= Process.GetCurrentProcess().StartTime.ToString("F") + "<br/><span class=\"text-muted small\">" + TimeZone.CurrentTimeZone.StandardName %></span></td>
+                                <td><%= Process.GetCurrentProcess().StartTime.ToString("F") + "<br/><span class=\"text-muted small\">" + TimeZone.CurrentTimeZone.StandardName %></td>
                             </tr>
                             <tr>
                                 <td>Process Total Processor Time</td>
-                                <td><% TimeSpan pcputs = Process.GetCurrentProcess().TotalProcessorTime;
-                                        Response.Write(string.Format("{0}days {1}hrs {2}mins {3}secs", pcputs.Days, pcputs.Hours, pcputs.Minutes, pcputs.Seconds)); %></td>
+                                <td>
+                                    <% TimeSpan pcputs = Process.GetCurrentProcess().TotalProcessorTime;
+                                        Response.Write(string.Format("{0}days {1}hrs {2}mins {3}secs", pcputs.Days, pcputs.Hours, pcputs.Minutes, pcputs.Seconds)); %>
+                                </td>
                             </tr>
                             <tr>
                                 <td>% Processor Time</td>
-                                <td><%
+                                <td>
+                                    <%
                                         double cpu = Process.GetCurrentProcess().TotalProcessorTime.TotalMilliseconds;
                                         double total = TimeSpan.FromTicks(DateTime.UtcNow.Ticks - Process.GetCurrentProcess().StartTime.ToUniversalTime().Ticks).TotalMilliseconds;
 
-                                        Response.Write(Math.Round((cpu / total) * 100, 2, MidpointRounding.AwayFromZero)); %>%</td>
+                                        Response.Write(Math.Round(cpu / total * 100, 2, MidpointRounding.AwayFromZero)); %>%
+                                </td>
                             </tr>
                             <tr>
                                 <td>Process Threads</td>
@@ -345,10 +407,12 @@
                 <a role="link" id="dotnetVersions"></a>
                 <div>
                     <h3 class="text-primary">
-                        <img src="http://www.microsoft.com/web/media/icons/dotnet-icon.png" alt=".net logo" style="height: 18px;" />.NET<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                        <img src="http://www.microsoft.com/web/media/icons/dotnet-icon.png" alt=".net logo" style="height: 18px;" />.NET<a href="#home" class="pull-right">
+                            <span class="glyphicon glyphicon-arrow-up small"></span></a>
+                    </h3>
                 </div>
 
-                <div class="pull-left" style="width: 50%;">
+<%--                <div class="pull-left" style="width: 50%;">
 
                     <table class="table table-striped">
                         <thead class="text-primary">
@@ -358,7 +422,7 @@
                         </thead>
                         <tbody>
                             <%
-                                string runtimeRoot = new DirectoryInfo(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory()).Parent.FullName;
+                                string runtimeRoot = new DirectoryInfo(RuntimeEnvironment.GetRuntimeDirectory()).Parent.FullName;
                                 string[] versions = Directory.GetDirectories(runtimeRoot, "v*");
                                 string version = "Unknown";
 
@@ -368,15 +432,22 @@
                                     version = versions[i].Substring(startIndex, versions[i].Length - startIndex);
                                     if (version.Contains("."))
                                     {
-                                        Response.Write(string.Format("<tr><td>{0}</td></tr>", version));
+                                        string sys = Path.Combine(versions[i], "csc.exe");
+                                        //FileInfo f= new FileInfo(sys);
+                                        if (File.Exists(sys))
+                                        {
+                                            string v = FileVersionInfo.GetVersionInfo(sys).ProductVersion;
+
+                                            Response.Write(string.Format("<tr><td>{0}</td></tr>", v));
+                                        }
                                     }
                                 }
                             %>
                         </tbody>
                     </table>
-                </div>
+                </div>--%>
 
-                <div class="pull-right" style="width: 50%;">
+                <div class="pull-left" style="width: 50%;">
                     <table class="table table-striped">
                         <thead class="text-primary">
                             <tr>
@@ -405,7 +476,9 @@
 
                 <a role="link" id="activeListeners"></a>
                 <div>
-                    <h3 class="text-primary">Active Listeners<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <h3 class="text-primary">Active Listeners<a href="#home" class="pull-right">
+                        <span class="glyphicon glyphicon-arrow-up small"></span></a>
+                    </h3>
                     <table class="table table-striped">
                         <thead class="text-primary">
                             <tr>
@@ -442,7 +515,7 @@
                                     getActiveListenersError = ex.Message;
                                 }
 
-                                if (!string.IsNullOrWhiteSpace(getActiveListenersError))
+                                if (getActiveListenersError != null && getActiveListenersError.Trim().Length > 0)
                                 {
                                     Response.Write(string.Format("<tr><td colspan=\"3\">{0}</td></tr>", getActiveListenersError));
                                 }
@@ -480,7 +553,9 @@
 
                 <a role="link" id="environmentVariables"></a>
                 <div>
-                    <h3 class="text-primary">Environment Variables<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <h3 class="text-primary">Environment Variables<a href="#home" class="pull-right">
+                        <span class="glyphicon glyphicon-arrow-up small"></span></a>
+                    </h3>
                     <table class="table table-striped">
                         <thead class="text-primary">
                             <tr>
@@ -500,7 +575,9 @@
 
                 <a role="link" id="requestProperties"></a>
                 <div>
-                    <h3 class="text-primary">Request Properties<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <h3 class="text-primary">Request Properties<a href="#home" class="pull-right">
+                        <span class="glyphicon glyphicon-arrow-up small"></span></a>
+                    </h3>
                     <table class="table table-striped">
                         <thead class="text-primary">
                             <tr>
@@ -530,7 +607,9 @@
 
                 <a role="link" id="requestHeaders"></a>
                 <div>
-                    <h3 class="text-primary">Request Headers<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <h3 class="text-primary">Request Headers<a href="#home" class="pull-right">
+                        <span class="glyphicon glyphicon-arrow-up small"></span></a>
+                    </h3>
                     <table class="table table-striped">
                         <thead class="text-primary">
                             <tr>
@@ -554,7 +633,9 @@
                 %>
                 <a role="link" id="responseHeaders"></a>
                 <div>
-                    <h3 class="text-primary">Response Headers<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <h3 class="text-primary">Response Headers<a href="#home" class="pull-right">
+                        <span class="glyphicon glyphicon-arrow-up small"></span></a>
+                    </h3>
                     <table class="table table-striped">
                         <thead class="text-primary">
                             <tr>
@@ -569,7 +650,7 @@
                                     string headerValue = Response.Headers[key];
                                     if (!string.IsNullOrEmpty(headerValue))
                                     {
-                                        Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", key, (Response.Headers[key] ?? "")));
+                                        Response.Write(string.Format("<tr><td>{0}</td><td>{1}</td></tr>", key, Response.Headers[key] ?? ""));
                                     }
                                 }
                             %>
@@ -579,7 +660,9 @@
 
                 <a role="link" id="serverVariables"></a>
                 <div>
-                    <h3 class="text-primary">Request Server Variables<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <h3 class="text-primary">Request Server Variables<a href="#home" class="pull-right">
+                        <span class="glyphicon glyphicon-arrow-up small"></span></a>
+                    </h3>
                     <table class="table table-striped">
                         <thead class="text-primary">
                             <tr>
@@ -605,7 +688,9 @@
                 <% if (HttpContext.Current.Session != null)
                     { %>
                 <div>
-                    <h3 class="text-primary">Session<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <h3 class="text-primary">Session<a href="#home" class="pull-right">
+                        <span class="glyphicon glyphicon-arrow-up small"></span></a>
+                    </h3>
                     <table class="table table-striped">
                         <thead class="text-primary">
                             <tr>
@@ -648,7 +733,7 @@
                             </tr>
                             <tr>
                                 <td>LCID</td>
-                                <td><%= Session.LCID.ToString() + " [" + new CultureInfo(Session.LCID).EnglishName + "]" %></td>
+                                <td><%= Session.LCID + " [" + new CultureInfo(Session.LCID).EnglishName + "]" %></td>
                             </tr>
                             <tr>
                                 <td>Mode</td>
@@ -671,10 +756,12 @@
                     </table>
                 </div>
                 <% }
-                    else
-                    { %>
+                else
+                { %>
                 <div>
-                    <h3 class="text-primary">Session<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <h3 class="text-primary">Session<a href="#home" class="pull-right">
+                        <span class="glyphicon glyphicon-arrow-up small"></span></a>
+                    </h3>
                     <table class="table table-striped">
                         <tbody>
                             <tr>
@@ -687,7 +774,9 @@
                 %>
                 <a role="link" id="gac"></a>
                 <div>
-                    <h3 class="text-primary">Global Assembly Cache (GAC)<a href="#home" class="pull-right"><span class="glyphicon glyphicon-arrow-up small"></span></a></h3>
+                    <h3 class="text-primary">Global Assembly Cache (GAC)<a href="#home" class="pull-right">
+                        <span class="glyphicon glyphicon-arrow-up small"></span></a>
+                    </h3>
                     <table class="table table-striped">
                         <tbody>
                             <% try
@@ -734,7 +823,6 @@
                                                     dir = dir.Substring(0, dir.IndexOf('\\'));
 
                                                     assemblyInfo.Add(fi.Name + "~" + dir.Replace("__", "~"));
-
                                                 }
                                             }
                                         }
@@ -751,9 +839,7 @@
 
                                             string asmString = string.Format("{2}, Version={0}, PublicKeyToken={1}", dllVersion, dllKey, dll);
                                             Response.Write(string.Format("<tr><td><a href=\"https://startpage.com/do/search?query={0}.dll\" target=\"_blank\"><span class=\"glyphicon glyphicon-new-window small\"></span>&nbsp;{0}</a><br/>{1}</td></tr>", dll.Replace(".dll", string.Empty), asmString));
-
                                         }
-
                                     }
                                 }
                                 catch (NotSupportedException ex)

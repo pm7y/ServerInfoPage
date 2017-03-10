@@ -20,3 +20,12 @@
 *.PDF	 diff=astextplain
 *.rtf	 diff=astextplain
 *.RTF	 diff=astextplain
+
+[difftool "winmergediff"] 
+  cmd = WinMergeU.exe /u /s /wl /maximize /dl "Server" /dr "Local" "$LOCAL" "$REMOTE" 
+[diff] 
+  tool = winmergediff 
+[mergetool "winmergemerge"] 
+  cmd = WinMergeU.exe /u /s /wl /maximize /dl "Server" /dr "Local" "$LOCAL" "$REMOTE" "$MERGED" 
+[merge] 
+  tool = winmergemerge 
